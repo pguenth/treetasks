@@ -320,7 +320,7 @@ class Scroller:
 
         h = self.viewport_height
         cursor_line_new = cursor_line_old + index_new - index_old
-        cursor_line_new = max(self.scrolloffset, min(cursor_line_new, h - self.scrolloffset + 1))
+        cursor_line_new = max(self.scrolloffset, min(cursor_line_new, h - self.scrolloffset - 1))
 
         if cursor_line_new >= index_new:
             cursor_line_new = index_new
@@ -332,6 +332,8 @@ class Scroller:
         self.list = current_list
         self.cursor = cursor
         self.display_list = current_list[start:][:h]
+
+        logging.debug("dlist {}".format([t.title for t in self.display_list]))
 
         return self.display_list
 
