@@ -60,8 +60,8 @@ class Config:
                 'sort_due_rev' : 'oD',
                 'sort_scheduled_rev' : 'oS',
                 'sort_natural_rev' : 'oO',
-                'new_task_child_bottom' : 'n',
-                'new_task_child_top' : 'N',
+                'new_task_child_bottom' : 'i',
+                'new_task_child_top' : 'I',
                 'delete_task' : 'W',
                 'cut_task' : 'w',
                 'paste_before' : 'pP',
@@ -69,15 +69,21 @@ class Config:
                 'paste_below_prepend' : 'pO',
                 'paste_below_append' : 'po',
                 'save' : 'S',
-                'copy_cursor' : 'y'
+                'copy_cursor' : 'y',
+                'schedule_down' : 'n',
+                'schedule_up' : 'm',
+                'schedule_top' : 'M',
+                'schedule_goto_today' : 'N'
 
             },
             'behaviour' : {
-                'scrolloffset' : 3,
+                'scrolloffset_tree' : 2,
+                'scrolloffset_schedule' : 1,
                 'show_done' : True,
                 'show_cancelled' : False,
                 'autosave' : True,
-                'sort_tagged_below' : True
+                'sort_tagged_below' : True,
+                'follow_schedule' : True
             }
     }
 

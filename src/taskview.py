@@ -1,5 +1,6 @@
 import curses
 import logging
+from datetime import date
 
 from .tree import TaskState
 from .geometry import TaskWindowColumns
@@ -116,7 +117,13 @@ class EditableDate(EditableString):
 
     @s.setter
     def s(self, value):
-        raise NotImplementedError()
+        try:
+            d = date.fromisoformat(value)
+        except ValueError:
+            State.message = "Unable to parse date"
+            return
+
+        self.descriptor.set(d)
 
 class EditableList(EditableString):
     @property
@@ -159,7 +166,8 @@ class EditableInt(EditableString):
         try:
             v = int(value)
         except ValueError:
-            v = self.s
+            State.message = "Unable to parse int"
+            return
 
         if self._validate(v):
             self.descriptor.set(v)
@@ -200,6 +208,8 @@ class ListTask(TaskView):
 
         self._noredraw = False
         self._redraw()
+
+        self.task.listview = self
 
     # limits the calculated column widths so they
     # fill at maximum appearance.columns_max_total_ratio * task_w
@@ -378,6 +388,8 @@ class DescriptionTask(TaskView):
         self._noredraw = False
         self._redraw()
 
+        self.task.descriptionview = self
+
     def _redraw(self):
         if self._noredraw:
             return
@@ -409,7 +421,7 @@ class DescriptionTask(TaskView):
             x_dates += len(t_due) + 1
             self.due.place(x_dates, y + 5, self.window)
 
-class ScheduledTask(TaskView):
+class ScheduleTask(TaskView):
     def __init__(self, task, geometry, window):
         super().__init__(task, geometry, window)
 
@@ -420,3 +432,28 @@ class ScheduledTask(TaskView):
 
         self._noredraw = False
         self._redraw()
+
+        self.task.scheduleview = self
+
+    def _redraw(self):
+        if self._noredraw:
+            return
+
+        x = self.x
+        y = self.y
+
+        if self.task.sort_date == date.today():
+            attr = curses.color_pair(2)
+        elif self.task.sort_date < date.today():
+            attr = curses.color_pair(1)
+        else:
+            attr = curses.color_pair(0)
+
+        if self.task == State.tm.current.cursor_sched:
+            attr |= curses.A_REVERSE
+
+        self.scheduled.place(x + 1, y, self.window)
+        self.due.place(x + 12, y, self.window)
+        self.title.place(x + 1, y + 1, self.window, self.width - 2)
+
+        self.title.attr = attr

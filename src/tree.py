@@ -133,6 +133,16 @@ class Task(LinkedListNodeMixin):
         self._fields['due'] = value
 
     @property
+    def sort_date(self):
+        if self.scheduled is None:
+            return self.due
+
+        if self.due is None:
+            return self.scheduled
+
+        return min(self.scheduled, self.due)
+
+    @property
     def collapsed(self):
         return self._fields['collapsed']
 
@@ -308,6 +318,7 @@ class TaskTree:
 
         self.parser.load(self.path, self.root)
         self.cursor = self.display_list[0]
+        self.cursor_sched = self.schedule_list[0]
 
     @property
     def display_list(self):
@@ -321,6 +332,21 @@ class TaskTree:
 
         tasks = list(PreOrderIter(self.root, filt))
         return tasks
+
+    @property
+    def schedule_list(self):
+        def filt(task):
+            if isinstance(task, AnyNode):
+                return False
+            if task.scheduled is None and task.due is None:
+                return False
+
+            return True
+
+        sched_list = list(PreOrderIter(self.root, filt))
+        sched_list.sort(key=lambda t: t.sort_date)
+
+        return sched_list
 
     def _sort(self, key):
         self.root.sort_tree(key=key, reverse=self.sort_reverse)
@@ -360,6 +386,36 @@ class TaskTree:
     def save(self):
         self._sort_natural()
         self.parser.save(self.path, self.root)
+
+    def sync_cursors(self):
+        if Config.get("behaviour.follow_schedule") and self.cursor_sched in self.display_list:
+            self.cursor = self.cursor_sched
+
+    def move_schedule_up(self):
+        index = self.schedule_list.index(self.cursor_sched)
+        self.cursor_sched = self.schedule_list[max(0, index - 1)]
+
+        self.sync_cursors()
+
+    def move_schedule_down(self):
+        index = self.schedule_list.index(self.cursor_sched)
+        self.cursor_sched = self.schedule_list[min(len(self.schedule_list) - 1, index + 1)]
+
+        self.sync_cursors()
+
+    def move_schedule_top(self):
+        self.cursor_sched = self.schedule_list[0]
+
+        self.sync_cursors()
+
+    def move_schedule_today(self):
+        while self.cursor_sched.sort_date < date.today():
+            self.move_schedule_down()
+
+        while self.cursor_sched.sort_date > date.today():
+            self.move_schedule_up()
+
+        self.sync_cursors()
 
     def move_cursor_flat(self, delta):
         tasks = self.display_list

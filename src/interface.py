@@ -10,7 +10,7 @@ from .config import Config
 from .state import State
 from .tree import TaskState, TaskTreeSortKey
 from .geometry import *
-from .taskview import ListTask, DescriptionTask
+from .taskview import ListTask, DescriptionTask, ScheduleTask
 
 locale.setlocale(locale.LC_ALL, '')
 lcode = locale.getpreferredencoding()
@@ -22,31 +22,31 @@ logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBU
 class Commands:
     @staticmethod
     def edit_scheduled():
-        Window.current_tasks[State.tm.current.cursor_line].scheduled.edit(Window)
+        State.tm.current.cursor.listview.scheduled.edit(Window)
         
     @staticmethod
     def edit_priority():
-        Window.current_tasks[State.tm.current.cursor_line].priority.edit(Window, replace=True)
+        State.tm.current.cursor.listview.priority.edit(Window, replace=True)
 
     @staticmethod
     def edit_due():
-        Window.current_tasks[State.tm.current.cursor_line].due.edit(Window)
+        State.tm.current.cursor.listview.due.edit(Window)
 
     @staticmethod
     def edit_categories():
-        Window.current_tasks[State.tm.current.cursor_line].categories.edit(Window)
+        State.tm.current.cursor.listview.categories.edit(Window)
 
     @staticmethod
     def edit_title():
-        Window.current_tasks[State.tm.current.cursor_line].title.edit(Window)
+        State.tm.current.cursor.listview.title.edit(Window)
 
     @staticmethod
     def replace_title():
-        Window.current_tasks[State.tm.current.cursor_line].title.edit(Window)
+        State.tm.current.cursor.listview.title.edit(Window)
 
     @staticmethod
     def edit_text():
-        Window.description_task.text.edit(Window)
+        State.tm.current.cursor.descriptionview.text.edit(Window)
 
     @staticmethod
     def sort_title(reverse=False):
@@ -74,19 +74,19 @@ class Commands:
 
     @staticmethod
     def down():
-        Window.move_cursor(1)
+        State.tm.current.move_cursor_hierarchic(1)
 
     @staticmethod
     def up():
-        Window.move_cursor(-1)
+        State.tm.current.move_cursor_hierarchic(-1)
 
     @staticmethod
     def down_flat():
-        Window.move_cursor_flat(1)
+        State.tm.current.move_cursor_flat(1)
 
     @staticmethod
     def up_flat():
-        Window.move_cursor_flat(-1)
+        State.tm.current.move_cursor_flat(-1)
 
     @staticmethod
     def cut_task():
@@ -135,14 +135,14 @@ class Commands:
     @staticmethod
     def left():
         try:
-            Window.cursor_left()
+            State.tm.current.move_treeup()
         except TreeError:
             pass
 
     @staticmethod
     def right():
         try:
-            Window.cursor_right()
+            State.tm.current.move_treedown()
         except TreeError:
             logging.debug("new task")
 
@@ -154,7 +154,7 @@ class Commands:
     def toggle_done():
         c = State.tm.current.cursor
         if not Config.get("behaviour.show_done"):
-            Window.move_cursor(-1)
+            State.tm.current.move_cursor_hierarchic(-1)
 
         c.toggle_done()
 
@@ -162,7 +162,7 @@ class Commands:
     def toggle_cancelled():
         c = State.tm.current.cursor
         if not Config.get("behaviour.show_cancelled"):
-            Window.move_cursor(-1)
+            State.tm.current.move_cursor_hierarchic(-1)
 
         c.toggle_cancelled()
 
@@ -170,7 +170,7 @@ class Commands:
     def toggle_show_done():
         if Config.get("behaviour.show_done"):
             while State.tm.current.cursor.done:
-                Window.move_cursor(-1)
+                State.tm.current.move_cursor_hierarchic(-1)
             Config.set("behaviour.show_done", False)
         else:
             Config.set("behaviour.show_done", True)
@@ -181,7 +181,7 @@ class Commands:
     def toggle_show_cancelled():
         if Config.get("behaviour.show_cancelled"):
             while State.tm.current.cursor.cancelled:
-                Window.move_cursor(-1)
+                State.tm.current.move_cursor_hierarchic(-1)
             Config.set("behaviour.show_cancelled", False)
         else:
             Config.set("behaviour.show_cancelled", True)
@@ -198,6 +198,21 @@ class Commands:
         State.tm.save_all()
         State.message = "Saved" 
 
+    @staticmethod
+    def schedule_up():
+        State.tm.current.move_schedule_up()
+
+    @staticmethod
+    def schedule_down():
+        State.tm.current.move_schedule_down()
+
+    @staticmethod
+    def schedule_goto_today():
+        State.tm.current.move_schedule_today()
+
+    @staticmethod
+    def schedule_top():
+        State.tm.current.move_schedule_top()
 
 class CommandHandler:
     config_call = {
@@ -240,7 +255,11 @@ class CommandHandler:
             'paste_below_prepend' : Commands.paste_below_prepend,
             'paste_below_append' : Commands.paste_below_append,
             'save' : Commands.save,
-            'copy_cursor' : Commands.copy_cursor
+            'copy_cursor' : Commands.copy_cursor,
+            'schedule_down' : Commands.schedule_down,
+            'schedule_up' : Commands.schedule_up,
+            'schedule_goto_today' : Commands.schedule_goto_today,
+            'schedule_top' : Commands.schedule_top
     }
 
     def __init__(self):
@@ -281,15 +300,16 @@ class CommandHandler:
             self.keychain_scope = action
 
 class Scroller:
-    def __init__(self, viewport_height):
+    def __init__(self, viewport_height, scrolloffset):
         self.viewport_height = viewport_height
+
+        if scrolloffset < 0:
+            scrolloffset = 0
+
+        self.scrolloffset = scrolloffset
         self.list = [None]
         self.cursor = None
         self.display_list = [None]
-
-    @property
-    def scrolloffset(self):
-        return Config.get("behaviour.scrolloffset")
 
     def get_display_list(self, cursor, current_list):
         assert cursor in current_list
@@ -300,7 +320,7 @@ class Scroller:
 
         h = self.viewport_height
         cursor_line_new = cursor_line_old + index_new - index_old
-        cursor_line_new = max(self.scrolloffset, min(cursor_line_new, h - self.scrolloffset))
+        cursor_line_new = max(self.scrolloffset, min(cursor_line_new, h - self.scrolloffset + 1))
 
         if cursor_line_new >= index_new:
             cursor_line_new = index_new
@@ -330,10 +350,15 @@ class Window:
 
     @staticmethod
     def main(stdscr):
+        #init colors
+        curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+
         Window.coords = WindowCoordinates()
         Window.scr = stdscr
         Window.command_handler = CommandHandler()
-        Window.scroller_tree = Scroller(0)
+        Window.scroller_tree = Scroller(0, Config.get("behaviour.scrolloffset_tree"))
+        Window.scroller_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
         Window.calculate_coordinates()
         Window.draw()
         while True:
@@ -355,21 +380,6 @@ class Window:
     def quit():
         pass
 
-    @staticmethod
-    def move_cursor(delta):
-        State.tm.current.move_cursor_hierarchic(delta)
-
-    @staticmethod
-    def move_cursor_flat(delta):
-        State.tm.current.move_cursor_flat(delta)
-
-    @staticmethod
-    def cursor_left():
-        State.tm.current.move_treeup()
-
-    @staticmethod
-    def cursor_right():
-        State.tm.current.move_treedown()
 
     @staticmethod
     def calculate_coordinates():
@@ -446,10 +456,26 @@ class Window:
         x = Window.coords.sched.ul.x
         y = Window.coords.sched.ul.y
         w = Window.coords.sched.w
+        h = Window.coords.sched.h
         title_str = "Schedule"
         spacing_len = int((w - len(title_str)) / 2)
         spacing = " " * (0 if spacing_len < 0 else spacing_len)
         win.addnstr(y, x, spacing + "Schedule", w, curses.A_BOLD)
+
+        y += 2
+
+        max_tasks = int((h - 2) / 3)
+
+        Window.scroller_schedule.viewport_height = max_tasks
+        logging.debug("c new win {}".format(State.tm.current.cursor_sched))
+        dl = Window.scroller_schedule.get_display_list(
+                State.tm.current.cursor_sched,
+                State.tm.current.schedule_list)
+
+        Window.current_tasks_sched = []
+        for i, task in enumerate(dl):
+            st = ScheduleTask(task, RectCoordinates(x, y + i * 3, x + Window.coords.sched.w, y + i * 3 + 3), win)
+            Window.current_tasks_sched.append(st)
 
     @staticmethod
     def draw():
@@ -460,7 +486,7 @@ class Window:
 
         Window.scr.addstr(y - 1, 0, "-> " + State.message)
         Window.draw_tasks(Window.scr)
-        Window.draw_schedule(Window.scr)
+        #Window.draw_schedule(Window.scr)
 
         if Config.get("appearance.schedule_show"):
             Window.draw_schedule(Window.scr)
@@ -473,11 +499,6 @@ class Window:
                     curses.ACS_HLINE, x - 2)
 
         Window.scr.refresh()
-
-    @staticmethod
-    def draw_schedule(scr):
-        
-        pass
 
     @staticmethod
     def insert(x, y, maxc, maxl=1, s="", replace=False):
