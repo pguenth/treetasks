@@ -308,7 +308,6 @@ class TaskTree:
 
         self.parser.load(self.path, self.root)
         self.cursor = self.display_list[0]
-        self.cursor_line = 0
 
     @property
     def display_list(self):
@@ -364,8 +363,7 @@ class TaskTree:
 
     def move_cursor_flat(self, delta):
         tasks = self.display_list
-        index_old = tasks.index(self.cursor) 
-        index_new = index_old + delta
+        index_new = tasks.index(self.cursor) + delta
 
         # roundtrip
         if index_new >= len(tasks):
@@ -374,70 +372,48 @@ class TaskTree:
             index_new += len(tasks)
         self.cursor = tasks[index_new]
 
-        return index_old, index_new 
-
     def move_cursor_hierarchic_up(self):
-        index_old = self.display_list.index(self.cursor)
         parentchildren = [c for c in self.cursor.parent.children if c.show]
         if len(parentchildren) == 1 or parentchildren.index(self.cursor) == 0:
             if isinstance(self.cursor.parent, AnyNode):
                 self.cursor = parentchildren[-1]
-                index_new = self.display_list.index(self.cursor)
             else:
-                _, index_new = self.move_treeup()
+                self.move_treeup()
         else:
             self.cursor = parentchildren[parentchildren.index(self.cursor) - 1]
-            index_new = self.display_list.index(self.cursor)
-
-        return index_old, index_new
-
 
     def move_cursor_hierarchic_down(self):
-        index_old = self.display_list.index(self.cursor)
         parentchildren = [c for c in self.cursor.parent.children if c.show]
         if len(parentchildren) == 1 or parentchildren.index(self.cursor) == len(parentchildren) - 1:
             if isinstance(self.cursor.parent, AnyNode):
                 self.cursor = parentchildren[0]
-                index_new = self.display_list.index(self.cursor)
             else:
                 self.move_treeup()
-                _, index_new = self.move_cursor_hierarchic_down()
+                self.move_cursor_hierarchic_down()
         else:
             self.cursor = parentchildren[parentchildren.index(self.cursor) + 1]
-            index_new = self.display_list.index(self.cursor)
-
-        return index_old, index_new
-
 
     def move_cursor_hierarchic(self, delta):
         tasks = self.display_list
-        index_old = tasks.index(self.cursor) 
 
         while delta > 0:
-            _, index_new = self.move_cursor_hierarchic_down()
+            self.move_cursor_hierarchic_down()
             delta -= 1
 
         while delta < 0:
-            _, index_new = self.move_cursor_hierarchic_up()
+            self.move_cursor_hierarchic_up()
             delta += 1
-
-        return index_old, index_new 
 
     def move_treeup(self):
         tasks = self.display_list
-        index_old = tasks.index(self.cursor) 
 
         if type(self.cursor.parent) is AnyNode:
             raise TreeError("Cursor is on top level")
 
         self.cursor = self.cursor.parent
-        index_new = tasks.index(self.cursor)
-
-        return index_old, index_new 
         
     def move_treedown(self):
         tasks = self.display_list
-        index_old = tasks.index(self.cursor) 
 
         # uncollapse if neccessary
         if self.cursor.collapsed:
@@ -449,8 +425,6 @@ class TaskTree:
         except:
             raise TreeError("Cursor has no children")
         
-        index_new = tasks.index(self.cursor)
-        return index_old, index_new 
         
     def _new_task_child_top(self, parent):
         ntask = Task("")
