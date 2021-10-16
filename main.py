@@ -4,7 +4,7 @@ from src.state import State
 from curses import wrapper
 
 configfile = "src/test.ini"
-taskfile = "test.xml"
+taskfile = "temp/test.xml"
 
 def run(stdscr):
     Config.load(configfile)

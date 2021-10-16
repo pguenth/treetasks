@@ -280,33 +280,40 @@ class CommandHandler:
         else:
             self.keychain_scope = action
 
-#class Scroller:
-#    def __init__(self, viewport_height):
-#        self.viewport_height = viewport_height
-#        self.display_list = None
-#        self.cursor = None
-#
-#    def get_list(self, cursor, display_list):
-#        assert cursor in display_list
-#
-#        index_new = display_list.index(cursor)
-#        index_old = 
-#
-#        h = self.viewport_height - 1
-#        new_cline = State.tm.current.cursor_line + index_new - index_old
-#        new_cline = max(scrolloff, min(new_cline, h - scrolloff))
-#        if new_cline >= index_new:
-#            return index_new
-#        elif h - new_cline >= len(State.tm.current.display_list) - index_new and h < len(State.tm.current.display_list):
-#            delta = h - new_cline - len(State.tm.current.display_list) + index_new
-#            return new_cline + delta + 1
-#        else:
-#            return new_cline
+class Scroller:
+    def __init__(self, viewport_height):
+        self.viewport_height = viewport_height
+        self.list = [None]
+        self.cursor = None
+        self.display_list = [None]
 
+    @property
+    def scrolloffset(self):
+        return Config.get("behaviour.scrolloffset")
 
+    def get_display_list(self, cursor, current_list):
+        assert cursor in current_list
 
+        index_new = current_list.index(cursor)
+        index_old = self.list.index(self.cursor)
+        cursor_line_old = self.display_list.index(self.cursor)
 
+        h = self.viewport_height
+        cursor_line_new = cursor_line_old + index_new - index_old
+        cursor_line_new = max(self.scrolloffset, min(cursor_line_new, h - self.scrolloffset))
 
+        if cursor_line_new >= index_new:
+            cursor_line_new = index_new
+        elif h - cursor_line_new >= len(current_list) - index_new and h < len(current_list):
+            delta = h - cursor_line_new - len(current_list) + index_new
+            cursor_line_new = cursor_line_new + delta# + 1
+
+        start = index_new - cursor_line_new 
+        self.list = current_list
+        self.cursor = cursor
+        self.display_list = current_list[start:][:h]
+
+        return self.display_list
 
 class Window:
     @staticmethod
@@ -326,6 +333,7 @@ class Window:
         Window.coords = WindowCoordinates()
         Window.scr = stdscr
         Window.command_handler = CommandHandler()
+        Window.scroller_tree = Scroller(0)
         Window.calculate_coordinates()
         Window.draw()
         while True:
@@ -348,44 +356,20 @@ class Window:
         pass
 
     @staticmethod
-    def update_cursor(index_new, index_old, cursor_line_old, window_h, scrolloff):
-        h = window_h - 1
-        new_cline = State.tm.current.cursor_line + index_new - index_old
-        new_cline = max(scrolloff, min(new_cline, h - scrolloff))
-        if new_cline >= index_new:
-            return index_new
-        elif h - new_cline >= len(State.tm.current.display_list) - index_new and h < len(State.tm.current.display_list):
-            delta = h - new_cline - len(State.tm.current.display_list) + index_new
-            return new_cline + delta + 1
-        else:
-            return new_cline
-
-    @staticmethod
-    def cursor_action(action):
-        index_old, index_new = action() 
-        State.tm.current.cursor_line = Window.update_cursor(
-                index_new,
-                index_old,
-                State.tm.current.cursor_line,
-                Window.coords.tasks.h,
-                Config.get("behaviour.scrolloffset")
-            )
-
-    @staticmethod
     def move_cursor(delta):
-        Window.cursor_action(lambda : State.tm.current.move_cursor_hierarchic(delta))
+        State.tm.current.move_cursor_hierarchic(delta)
 
     @staticmethod
     def move_cursor_flat(delta):
-        Window.cursor_action(lambda : State.tm.current.move_cursor_flat(delta))
+        State.tm.current.move_cursor_flat(delta)
 
     @staticmethod
     def cursor_left():
-        Window.cursor_action(lambda : State.tm.current.move_treeup())
+        State.tm.current.move_treeup()
 
     @staticmethod
     def cursor_right():
-        Window.cursor_action(lambda : State.tm.current.move_treedown())
+        State.tm.current.move_treedown()
 
     @staticmethod
     def calculate_coordinates():
@@ -443,20 +427,13 @@ class Window:
         y = Window.coords.tasks.ul.y
         h = Window.coords.tasks.h
 
-        iterlist = State.tm.current.display_list
-        index_cursor = iterlist.index(State.tm.current.cursor)
-        start = index_cursor - State.tm.current.cursor_line
-
-        if start < 0:
-            y -= start
-            h += start
-            start = 0
+        Window.scroller_tree.viewport_height = h
+        dl = Window.scroller_tree.get_display_list(
+                State.tm.current.cursor,
+                State.tm.current.display_list)
 
         Window.current_tasks = []
-        for i, task in enumerate(iterlist[start:]):
-            if i > h - 1:
-                break
-
+        for i, task in enumerate(dl):
             lt = ListTask(task, RectCoordinates(x, y + i, x + Window.coords.tasks.w, y + i), win)
             Window.current_tasks.append(lt)
 
