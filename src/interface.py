@@ -356,12 +356,10 @@ class Window:
         curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
         curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
 
-        Window.coords = WindowCoordinates()
         Window.scr = stdscr
         Window.command_handler = CommandHandler()
         Window.scroller_tree = Scroller(0, Config.get("behaviour.scrolloffset_tree"))
         Window.scroller_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
-        Window.calculate_coordinates()
         Window.draw()
         while True:
             Window.loop()
@@ -386,7 +384,7 @@ class Window:
     @staticmethod
     def calculate_coordinates():
         h, w = Window.scr.getmaxyx()
-        c = Window.coords
+        c = WindowCoordinates()
 
         # spacings from the border
         c.tasks.ul.x = 1
@@ -394,7 +392,6 @@ class Window:
         c.sched.br.x = w - 2
         c.sched.ul.y = c.tasks.ul.y
         c.descr.br.y = h - 2
-        c.descr.br.x = c.sched.br.x
         c.descr.ul.x = c.tasks.ul.x
         
         # find location where the inner-screen borders meet
@@ -427,38 +424,36 @@ class Window:
         c.tasks.br.x = c.cross.x - 1
         c.tasks.br.y = c.cross.y - 1
         c.sched.ul.x = c.cross.x + 1
-        c.sched.br.y = c.tasks.br.y
         c.descr.ul.y = c.cross.y + 1
+        c.sched.br.y = c.descr.br.y
+        c.descr.br.x = c.tasks.br.x
 
-        # task window columns
-        task_w = c.cross.x - c.tasks.ul.x
+        return c
 
     @staticmethod
-    def draw_tasks(win):
-        x = Window.coords.tasks.ul.x + 1
-        y = Window.coords.tasks.ul.y
-        h = Window.coords.tasks.h
+    def draw_tasks(win, coords):
+        x = coords.ul.x + 1
+        y = coords.ul.y
+        h = coords.h
 
         Window.scroller_tree.viewport_height = h
         dl = Window.scroller_tree.get_display_list(
                 State.tm.current.cursor,
                 State.tm.current.display_list)
 
-        Window.current_tasks = []
         for i, task in enumerate(dl):
-            lt = ListTask(task, RectCoordinates(x, y + i, x + Window.coords.tasks.w, y + i), win)
-            Window.current_tasks.append(lt)
+            ListTask(task, RectCoordinates(x, y + i, x + coords.w, y + i), win)
 
     @staticmethod
-    def draw_description(win):
-        Window.description_task = DescriptionTask(State.tm.current.cursor, Window.coords.descr, win)
+    def draw_description(win, coords):
+        Window.description_task = DescriptionTask(State.tm.current.cursor, coords, win)
 
     @staticmethod
-    def draw_schedule(win):
-        x = Window.coords.sched.ul.x
-        y = Window.coords.sched.ul.y
-        w = Window.coords.sched.w
-        h = Window.coords.sched.h
+    def draw_schedule(win, coords):
+        x = coords.ul.x
+        y = coords.ul.y
+        w = coords.w
+        h = coords.h
         title_str = "Schedule"
         spacing_len = int((w - len(title_str)) / 2)
         spacing = " " * (0 if spacing_len < 0 else spacing_len)
@@ -474,10 +469,8 @@ class Window:
                 State.tm.current.cursor_sched,
                 State.tm.current.schedule_list)
 
-        Window.current_tasks_sched = []
         for i, task in enumerate(dl):
-            st = ScheduleTask(task, RectCoordinates(x, y + i * 3, x + Window.coords.sched.w, y + i * 3 + 3), win)
-            Window.current_tasks_sched.append(st)
+            ScheduleTask(task, RectCoordinates(x, y + i * 3, x + coords.w, y + i * 3 + 3), win)
 
     @staticmethod
     def draw():
@@ -486,19 +479,20 @@ class Window:
         Window.scr.addstr(0, 1, "TreeTasks - welcome!")
         y, x = Window.scr.getmaxyx()
 
+        wincoords = Window.calculate_coordinates()
+
         Window.scr.addstr(y - 1, 0, "-> " + State.message)
-        Window.draw_tasks(Window.scr)
-        #Window.draw_schedule(Window.scr)
+        Window.draw_tasks(Window.scr, wincoords.tasks)
 
         if Config.get("appearance.schedule_show"):
-            Window.draw_schedule(Window.scr)
-            Window.scr.vline(1, Window.coords.cross.x, 
-                    curses.ACS_VLINE, Window.coords.cross.y - 1)
+            Window.draw_schedule(Window.scr, wincoords.sched)
+            Window.scr.vline(1, wincoords.cross.x, 
+                    curses.ACS_VLINE, y - 2)
 
         if Config.get("appearance.description_show"):
-            Window.draw_description(Window.scr)
-            Window.scr.hline(Window.coords.cross.y, Window.coords.tasks.ul.x,
-                    curses.ACS_HLINE, x - 2)
+            Window.draw_description(Window.scr, wincoords.descr)
+            Window.scr.hline(wincoords.cross.y, wincoords.tasks.ul.x,
+                    curses.ACS_HLINE, wincoords.cross.x - 1)
 
         Window.scr.refresh()
 
