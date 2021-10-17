@@ -62,6 +62,8 @@ class Config:
                 'sort_natural_rev' : 'oO',
                 'new_task_child_bottom' : 'i',
                 'new_task_child_top' : 'I',
+                'new_task_above' : 'U',
+                'new_task_below' : 'u',
                 'delete_task' : 'W',
                 'cut_task' : 'w',
                 'paste_before' : 'pP',
@@ -73,7 +75,8 @@ class Config:
                 'schedule_down' : 'n',
                 'schedule_up' : 'm',
                 'schedule_top' : 'M',
-                'schedule_goto_today' : 'N'
+                'schedule_goto_today' : 'N',
+
 
             },
             'behaviour' : {

@@ -117,20 +117,31 @@ class Commands:
         State.tm.current.paste(below=True, before=True)
 
     @staticmethod
-    def new_task_child_bottom():
-        new_task = State.tm.current.new_task_child_bottom()
+    def _new_task_edit(new_task):
         Window.draw()
         Commands.edit_title()
         if new_task.title == "":
             State.tm.current.delete(new_task)
 
     @staticmethod
+    def new_task_child_bottom():
+        new_task = State.tm.current.new_task_child_bottom()
+        Commands._new_task_edit(new_task)
+
+    @staticmethod
     def new_task_child_top():
         new_task = State.tm.current.new_task_child_bottom()
-        Window.draw()
-        Commands.edit_title()
-        if new_task.title == "":
-            State.tm.current.delete(new_task)
+        Commands._new_task_edit(new_task)
+
+    @staticmethod
+    def new_task_above():
+        new_task = State.tm.current.new_task_sibling_above()
+        Commands._new_task_edit(new_task)
+
+    @staticmethod
+    def new_task_below():
+        new_task = State.tm.current.new_task_sibling_below()
+        Commands._new_task_edit(new_task)
 
     @staticmethod
     def left():
@@ -248,6 +259,8 @@ class CommandHandler:
             'sort_category_rev' : lambda : Commands.sort_category(True),
             'new_task_child_bottom' : Commands.new_task_child_bottom,
             'new_task_child_top' : Commands.new_task_child_top,
+            'new_task_above' : Commands.new_task_above,
+            'new_task_below' : Commands.new_task_below,
             'delete_task' : Commands.delete_task,
             'cut_task' : Commands.cut_task,
             'paste_before' : Commands.paste_before,

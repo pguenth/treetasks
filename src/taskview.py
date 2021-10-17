@@ -430,6 +430,10 @@ class ScheduleTask(TaskView):
         self.title = EditableString(ReferencedDescriptor(type(task).title, task))
         self.priority = EditableInt(ReferencedDescriptor(type(task).priority, task))
 
+        self.scheduled.attr = curses.A_DIM
+        self.due.attr = curses.A_DIM
+
+
         self._noredraw = False
         self._redraw()
 
