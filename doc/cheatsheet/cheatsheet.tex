@@ -184,7 +184,7 @@
     \newcommand{\frowsep}{6}
     \X=0\unit
     \pgfmathparse{2*\frowsep}
-    \unusedfkey          {Esc}{\pgfmathresult}
+    \fkeyd          {Esc}{confirm editing}{\pgfmathresult}
     \unusedfkey           {F1}
     \unusedfkey      {F2}
     \unusedfkey           {F3}
@@ -207,20 +207,20 @@
     \setlength{\Y}{\Y - \base - \unit - \sep}
     % numeric row
     \X=0\unit
-    \keyd           {\texttildelow}{},{`}{}
-    \keyd           !{},1{}
-    \keyd           @{},2{}
-    \keyd           \#{} ,3{}
-    \keyd           {\$}{},4{}
-    \keyd     \%{},5{}
-    \keyd           \^{},6{}
-    \keyd           \&,7{}
-    \keyd            *,8{}
-    \keyd           ({},9{}
-    \keyd           ){},0{}
-    \keyd            \_,{\textendash}{}
-    \keyd           +{},={}
-    \unusedlongfkey (2\base)  {Backspace}
+    \unusedkey           {\texttildelow}{},{`}{}
+    \unusedkey           !{},1{}
+    \unusedkey           @{},2{}
+    \unusedkey           \#{} ,3{}
+    \unusedkey           {\$}{},4{}
+    \unusedkey     \%{},5{}
+    \unusedkey           \^{},6{}
+    \unusedkey           \&,7{}
+    \unusedkey            *,8{}
+    \unusedkey           ({},9{}
+    \unusedkey           ){},0{}
+    \unusedkey            \_,{\textendash}{}
+    \unusedkey           +{},={}
+    \longfkeyd (2\base)  {Backspace}{}
 \ifx \shortkeyboard \defined
     \setlength{\X}{\X + 0.5\base - \sep}
     \unusedfkey     {Insert}
@@ -231,19 +231,19 @@
     \setlength{\Y}{\Y - \base - \sep}
     % upper row
     \X=0\unit
-    \longfkeyd      (2\base - \unit) {Tab}{}
-    \keyd          Q{},q{quit}
-    \keyd          W{},w{}
-    \keyd          E{},e{}
-    \keyd          R{},r{}
-    \keyd           T{},t{}
-    \keyd           Y{},y{}
-    \keyd          U{},u{}
-    \keyd           I{},i{}
-    \keyd           O{},o{}
-    \keyd           P{},p{}
-    \keyd           \{{},[{}
-    \keyd           \}{},]{}
+    \longfkeyd      (2\base - \unit) {Tab}{switch tab\\(currently in dev)}
+    \keyd          Q{quit without saving},q{quit}
+    \unusedkey          W{},w{}
+    \keyd          E{set scheduled tomorrow},e{set scheduled today}
+    \keyd          R{set due tomorrow},r{set due today}
+    \keyd           T{},t{open new tab (in dev)}
+    \keyd           Y{},y{copy cursor}
+    \keyd          U{redo (currently in dev)},u{undo (currently in dev)}
+    \keyd           I{new child (top)},i{edit title}
+    \keyd           O{new task above},o{new task below}
+    \keyd           P{},p{paste\note{1}}
+    \unusedkey           \{{},[{}
+    \unusedkey           \}{},]{}
     \unusedlongkey  (\base + \unit) {\textbar},{\textbackslash}
 \ifx \shortkeyboard \defined
     \setlength{\X}{\X + 0.5\base - \sep}
@@ -255,34 +255,34 @@
     \setlength{\Y}{\Y - \base - \sep}
     % home row
     \X=0\unit
-    \longfkeyd (2\base) {Esc}{ }
-    \keyd           A{},a{}
-    \keyd           S{},s{}
-    \keyd          D{},d{}
-    \keyd          F{},f{}
-    \keyd           G{},g{}
+    \longfkeyd (2\base) {Caps Lock}{ }
+    \keyd           A{new child (bottom)},a{edit text}
+    \keyd           S{save},s{sort\note{3}}
+    \keyd          D{},d{cut\note{2}}
+    \keyd          F{toggle show done},f{toggle done}
+    \keyd           G{toggle show cancelled},g{toggle cancelled}
     \keyd          H{},h{move to parent}
     \keyd           J{move down (flat)},j{move down}
     \keyd           K{move up (flat)},k{move up}
     \keyd          L{},l{move to children}
-    \keyd           :{},;{}
-    \keyd           "{},'{}
-    \longfkeyd      (2\base + \sep) {Enter}{}
+    \unusedkey           :{},;{}
+    \unusedkey           "{},'{}
+    \longfkeyd      (2\base + \sep) {Enter}{confirm editing}
 
     \setlength{\Y}{\Y - \base - \sep}
     % lower row
     \X=0\unit
     \longfkeyd      (2\base + 2\sep) {Shift}{}
-    \keyd           Z{},z{}
-    \keyd          X{},x{}
-    \keyd          C{},c{}
-    \keyd           V{},v{}
-    \keyd          B{},b{}
-    \keyd          N{},n{}
-    \keyd           M{},m{}
+    \keyd           Z{show all categories},z{show only categories}
+    \keydd          {\textasciicircum X}{abort editing},X{unhide categories},x{hide categories}
+    \keyd          C{replace title},c{edit properties\note{4}}
+    \keyd           V{toggle sort tagged below},v{toggle collapse}
+    \keyd          B{move selected task up},b{move selected task down}
+    \keyd          N{today\\(schedule)},n{down\\(schedule)}
+    \keyd           M{top\\(schedule)},m{up\\(schedule)}
     \unusedkey           {\textless},,
-    \keyd           {\textgreater},.{\textcolor{gray}{}}
-    \keyd           ?{},/{}
+    \unusedkey           {\textgreater},.{\textcolor{gray}{}}
+    \unusedkey           ?{},/{}
     \longfkeyd      (3\base) {Shift}{}
 \ifx \shortkeyboard \defined
     \setlength{\X}{\X + 0.5\base - \sep + \base + \sep}
@@ -310,24 +310,66 @@
 \end{tikzpicture}
 
 \def\blockA{
-    \makeblock{6cm}{Block}{
-        You can write anything you want inside of these blocks
+    \makeblock{6cm}{Paste \note{1}}{
+        Keychains for pasting:
+        \begin{itemize}
+            \item \shortcut{pp} Paste after cursor
+            \item \shortcut{pP} Paste in front of cursor
+            \item \shortcut{po} Paste as child, after other children
+            \item \shortcut{pO} Paste as child, in front of other children
+        \end {itemize}
     }
 }
 \def\blockB{
-    \makeblock{6cm}{Second Block}{
-        This is another example block.
+    \makeblock{6cm}{Cut/Delete \note{2}}{
+        Keychains for cutting/deleting:
+        \begin{itemize}
+            \item \shortcut{dd} Cut cursor
+            \item \shortcut{dD} Delete cursor (to keep clipboard)
+        \end {itemize}
    }
 }
 \def\blockC{
-    \makeblock{6cm}{Placing blocks...}{
-        ...below each other is also possible
+    \makeblock{6cm}{Sort \note{3}}{
+        Keychains for reordering the tree.
+        The "natural" order defined by moving around tasks is always saved.
+        Replace the second letter of the keychain by its corresponding capital to order in reverse.
+        \begin{itemize}
+            \item \shortcut{ss} Restore natural order
+            \item \shortcut{st} Sort by title
+            \item \shortcut{sp} Sort by priority
+            \item \shortcut{sc} Sort by category
+            \item \shortcut{sr} Sort by due date
+            \item \shortcut{se} Sort by scheduled date
+            \item \shortcut{sd} Sort by whichever date is earlier (like the schedule)
+        \end {itemize}
+    }
+}
+\def\blockD{
+    \makeblock{6cm}{Edit \note{4}}{
+        Keychains for editing tasks.
+        \begin{itemize}
+            \item \shortcut{cp} Edit priority
+            \item \shortcut{cc} Edit category
+            \item \shortcut{cr} Edit due date
+            \item \shortcut{ce} Edit scheduled date
+        \end {itemize}
+        Without using keychains, the rest of the properties can be edited:
+        \begin{itemize}
+            \item \shortcut{i} Edit title
+            \item \shortcut{C} Replace title
+            \item \shortcut{a} Edit description text
+        \end {itemize}
+
     }
 }
 
+
 \vspace{+2ex}
 \scriptsize
-\Shortunderstack{ {\protect\blockA} {\protect\blockC} }
+\Shortunderstack{ {\protect\blockA}  }
 \Shortunderstack{ {\protect\blockB}  }
+\Shortunderstack{ {\protect\blockC}  }
+\Shortunderstack{ {\protect\blockD}  }
 
 \end{document}

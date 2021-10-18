@@ -338,6 +338,7 @@ class TaskTreeSortKey(Enum):
     DUE = 3
     SCHEDULED = 4
     CATEGORY = 5
+    DATE = 6
 
 class AnyTaskTreeAwareNode(AnyLinkedListNode):
     def __init__(self, tasktree):
@@ -450,14 +451,28 @@ class TaskTree:
             self._sort(lambda t: t.scheduled if not t.scheduled is None else datetime.date(2100,1,1))
         elif self.sort_key == TaskTreeSortKey.PRIORITY:
             self._sort(lambda t: t.priority if not t.priority is None else 10)
+        elif self.sort_key == TaskTreeSortKey.DATE:
+            def k(t):
+                if t.scheduled is None:
+                    return t.due if not t.due is None else datetime.date(2100,1,1)
+                if t.due is None:
+                    return t.scheduled
+
+                return min(t.due, t.scheduled)
+            self._sort(k)
 
     def set_order(self, key, reverse=False):
         self.sort_key = key
         self.sort_reverse = reverse
     
     def save(self):
+        stb = Config.get("behaviour.sort_tagged_below")
+        Config.set("behaviour.sort_tagged_below", False)
+
         self._sort_natural()
         self.parser.save(self.path, self.root)
+
+        Config.set("behaviour.sort_tagged_below", stb)
 
     def sync_cursors(self):
         if Config.get("behaviour.follow_schedule") and self.cursor_sched in self.display_list:
@@ -503,21 +518,32 @@ class TaskTree:
     def move_cursor_hierarchic_up(self):
         parentchildren = [c for c in self.cursor.parent.children if c.show]
         if len(parentchildren) == 1 or parentchildren.index(self.cursor) == 0:
-            if isinstance(self.cursor.parent, AnyNode):
+            if     (isinstance(self.cursor.parent, AnyNode) and
+                    Config.get("behaviour.roundtrip")):
                 self.cursor = parentchildren[-1]
-            else:
+            elif   (not isinstance(self.cursor.parent, AnyNode) and
+                    Config.get("behaviour.auto_move_up")):
                 self.move_treeup()
+            elif Config.get("behaviour.roundtrip"):
+                # roundtrip in children
+                self.cursor = parentchildren[-1]
+
         else:
             self.cursor = parentchildren[parentchildren.index(self.cursor) - 1]
 
     def move_cursor_hierarchic_down(self):
         parentchildren = [c for c in self.cursor.parent.children if c.show]
         if len(parentchildren) == 1 or parentchildren.index(self.cursor) == len(parentchildren) - 1:
-            if isinstance(self.cursor.parent, AnyNode):
+            if     (isinstance(self.cursor.parent, AnyNode) and
+                    Config.get("behaviour.roundtrip")):
                 self.cursor = parentchildren[0]
-            else:
+            elif   (not isinstance(self.cursor.parent, AnyNode) and
+                    Config.get("behaviour.auto_move_up")):
                 self.move_treeup()
                 self.move_cursor_hierarchic_down()
+            elif Config.get("behaviour.roundtrip"):
+                # roundtrip in children
+                self.cursor = parentchildren[0]
         else:
             self.cursor = parentchildren[parentchildren.index(self.cursor) + 1]
 
@@ -535,8 +561,9 @@ class TaskTree:
     def move_treeup(self):
         tasks = self.display_list
 
-        if type(self.cursor.parent) is AnyNode:
-            raise TreeError("Cursor is on top level")
+        if isinstance(self.cursor.parent, AnyNode):
+            return
+            #raise TreeError("Cursor is on top level")
 
         self.cursor = self.cursor.parent
         
@@ -606,6 +633,39 @@ class TaskTree:
     def new_task_bottom(self):
         return self._new_task_child_bottom(self.root)
 
+    def move_selected_task_up(self):
+        task = self.cursor
+        parentchildren = [c for c in self.cursor.parent.children if c.show]
+        parentindex = parentchildren.index(task)
+
+        amu = Config.get("behaviour.auto_move_up")
+        Config.set("behaviour.auto_move_up", False)
+        self.move_cursor_hierarchic_up()
+        Config.set("behaviour.auto_move_up", amu)
+
+        if len(parentchildren) == 1 or parentindex == 0:
+            self.paste(task=task, before=False, below=False)
+        else:
+            self.paste(task=task, before=True, below=False)
+        self.cursor = task
+
+    def move_selected_task_down(self):
+        task = self.cursor
+        parentchildren = [c for c in self.cursor.parent.children if c.show]
+        parentindex = parentchildren.index(task)
+
+        amu = Config.get("behaviour.auto_move_up")
+        Config.set("behaviour.auto_move_up", False)
+        self.move_cursor_hierarchic_down()
+        Config.set("behaviour.auto_move_up", amu)
+
+        if len(parentchildren) == 1 or parentindex == len(parentchildren) - 1:
+            self.paste(task=task, before=True, below=False)
+        else:
+            self.paste(task=task, before=False, below=False)
+        self.cursor = task
+
+
     def _move_before_deleting(self):
         if len(self.cursor.siblings) == 0:
             self.move_treeup()
@@ -651,13 +711,13 @@ class TaskTree:
         elif not below and not before:
             self.cursor.insert_after(task)
 
-    def insert_clipboard_after(self):
-        if not self.manager.clipboard is None:
-            self.insert_after_cursor(self.manager.clipboard)
+    #def insert_clipboard_after(self):
+    #    if not self.manager.clipboard is None:
+    #        self.insert_after_cursor(self.manager.clipboard)
 
-    def insert_clipboard_before(self):
-        if not self.manager.clipboard is None:
-            self.insert_before_cursor(self.clipboard)
+    #def insert_clipboard_before(self):
+    #    if not self.manager.clipboard is None:
+    #        self.insert_before_cursor(self.clipboard)
 
     def copy_cursor(self):
         self.manager.clipboard = self.cursor

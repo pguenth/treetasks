@@ -3,8 +3,10 @@ import copy
 import os
 import locale
 import logging
+from datetime import date, timedelta
 
 from anytree import PreOrderIter, TreeError
+
 
 from .config import Config
 from .state import State
@@ -73,6 +75,10 @@ class Commands:
         State.tm.current.set_order(TaskTreeSortKey.PRIORITY, reverse)
 
     @staticmethod
+    def sort_date(reverse=False):
+        State.tm.current.set_order(TaskTreeSortKey.DATE, reverse)
+
+    @staticmethod
     def down():
         State.tm.current.move_cursor_hierarchic(1)
 
@@ -94,7 +100,8 @@ class Commands:
 
     @staticmethod
     def delete_task():
-        State.tm.current.delete()
+        if Window.get_input("Delete task forever? (y/n)") == "y":
+            State.tm.current.delete()
 
     @staticmethod
     def copy_cursor():
@@ -182,6 +189,13 @@ class Commands:
         c.toggle_cancelled()
 
     @staticmethod
+    def toggle_config(config_uri):
+        if Config.get(config_uri):
+            Config.set(config_uri, False)
+        else:
+            Config.set(config_uri, True)
+
+    @staticmethod
     def toggle_show_done():
         if Config.get("behaviour.show_done"):
             while State.tm.current.cursor.done:
@@ -189,8 +203,6 @@ class Commands:
             Config.set("behaviour.show_done", False)
         else:
             Config.set("behaviour.show_done", True)
-
-
 
     @staticmethod
     def toggle_show_cancelled():
@@ -256,6 +268,30 @@ class Commands:
         State.tm.current.unhide_all_categories()
         State.tm.current.show_only_categories = set()
 
+    @staticmethod
+    def move_cursor_up():
+        State.tm.current.move_selected_task_up()
+
+    @staticmethod
+    def move_cursor_down():
+        State.tm.current.move_selected_task_down()
+
+    @staticmethod
+    def set_scheduled_today():
+        State.tm.current.cursor.scheduled = date.today()
+
+    @staticmethod
+    def set_scheduled_tomorrow():
+        State.tm.current.cursor.scheduled = date.today() + timedelta(days=1)
+
+    @staticmethod
+    def set_due_today():
+        State.tm.current.cursor.due = date.today() 
+
+    @staticmethod
+    def set_due_tomorrow():
+        State.tm.current.cursor.due = date.today() + timedelta(days=1)
+
 class CommandHandler:
     config_call = {
             'down' : Commands.down,
@@ -310,7 +346,16 @@ class CommandHandler:
             'show_all_categories' : Commands.show_all_categories,
             'hide_categories' : Commands.hide_categories,
             'unhide_categories' : Commands.unhide_categories,
-            'unhide_all_categories' : Commands.unhide_all_categories
+            'unhide_all_categories' : Commands.unhide_all_categories,
+            'set_scheduled_today' : Commands.set_scheduled_today,
+            'set_scheduled_tomorrow' : Commands.set_scheduled_tomorrow,
+            'set_due_today' : Commands.set_due_today,
+            'set_due_tomorrow' : Commands.set_due_tomorrow,
+            'move_cursor_up' : Commands.move_cursor_up,
+            'move_cursor_down' : Commands.move_cursor_down,
+            'sort_date_rev' : lambda : Commands.sort_date(True),
+            'sort_date' : Commands.sort_date,
+            'toggle_sort_tagged_below' : lambda : Commands.toggle_config("behaviour.sort_tagged_below"),
     }
 
     def __init__(self):
@@ -392,6 +437,16 @@ class Scroller:
 
         return self.display_list
 
+class DeepcopySafeCursesWindow:
+    def __init__(self, cwindow):
+        self.cwindow = cwindow
+
+    def __deepcopy__(self, memo):
+        return self
+
+    def __getattr__(self, attr):
+        return getattr(self.cwindow, attr)
+
 class Window:
     @staticmethod
     def handle_special_key(k):
@@ -413,7 +468,7 @@ class Window:
         
         curses.curs_set(0)
 
-        Window.scr = stdscr
+        Window.scr = DeepcopySafeCursesWindow(stdscr)
         Window.command_handler = CommandHandler()
         Window.scroller_tree = Scroller(0, Config.get("behaviour.scrolloffset_tree"))
         Window.scroller_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))

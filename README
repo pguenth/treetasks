@@ -1,0 +1,9 @@
+Treetasks - Organize tasks in an hierarchical format
+
+Dependencies (python libraries):
+        - anytree
+
+Usage:
+        The application is inspired by tudu and uses similar concepts and workflows. For keybindings reference, take a look at the cheatsheet provided in the repository. At the moment, you have to manually load the application in a python script. An example of how to do that is given in main.py.
+
+        There will be missing features and bugs. Feel free to report them, but keep in mind that this is an alpha development version.
