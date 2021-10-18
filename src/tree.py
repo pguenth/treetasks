@@ -158,9 +158,18 @@ class Task(LinkedListNodeMixin):
         return self.collapsed
 
     @property
-    def _category_visible(self):
-        assert type(self.root.tasktree.show_only_categories) is set
+    def _category_visible_by_hidden(self):
         assert type(self.root.tasktree.hidden_categories) is set
+
+        intersection = self.root.tasktree.hidden_categories & set(self.categories)
+        if len(intersection) == 0:
+            return True
+        else:
+            return False
+
+    @property
+    def _category_visible_by_showonly(self):
+        assert type(self.root.tasktree.show_only_categories) is set
 
         so_cat = self.root.tasktree.show_only_categories 
         if not so_cat is None and len(so_cat) != 0:
@@ -169,12 +178,23 @@ class Task(LinkedListNodeMixin):
                 return False
             else:
                 return True
-
-        intersection = self.root.tasktree.hidden_categories & set(self.categories)
-        if len(intersection) == 0:
-            return True
         else:
-            return False
+            return None
+
+    @property
+    def _category_visible(self):
+        for child in self.children:
+            if child._category_visible_by_showonly:
+                return True
+
+        vis_by_so = self._category_visible_by_showonly
+        if not vis_by_so is None:
+            return vis_by_so
+
+        return self._category_visible_by_hidden
+
+
+
 
     @property
     def show(self):
