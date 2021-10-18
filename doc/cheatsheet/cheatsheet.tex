@@ -1,0 +1,333 @@
+% Treetasks cheatsheet
+% 
+% Based on:
+%    "Builtin normal mode keys of Vifm" cheatsheet
+%   
+%    Copyright (C) 2020 xaizek.
+%    Made available under the terms of Apache 2.0 license.
+%   
+%    Note that LaTeX knowledge of the author is extermely limited and the code
+%    below is probably of quite low quality.
+% 
+% Modified by Patrick Günther
+%
+
+\documentclass[landscape]{article}
+
+\usepackage[latin1]{inputenc}
+\usepackage{tikz}
+
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{fontawesome}
+\usepackage{setspace}
+
+\usepackage[paperwidth=32.5cm, paperheight=28cm] {geometry}
+\geometry{top=2mm,bottom=0mm,left=-3mm,right=0mm}
+
+\usepackage[oldsyntax]{stackengine}
+\newcommand\makeblock[3]{\parbox[t]{#1}{\textbf{#2}\\[2pt]#3}}
+\Sstackgap=1.5ex
+
+\setlength{\tabcolsep}{0.2em}
+
+% disable page numbers
+\pagestyle{empty}
+
+\newlength\unit
+\newlength\sep
+\newlength\base
+
+\setlength{\unit}{0.3cm}
+\setlength{\sep}{0.4\unit} %
+\setlength{\base}{4\unit}
+
+% comment this line for big keyboard (and increase page size)
+\def\shortkeyboard{\true}
+
+\definecolor{util}{gray}{0.5}
+\definecolor{note}{RGB}{75,75,205}
+\definecolor{keyname}{RGB}{225,75,75}
+
+\newcommand{\s}[1]{{\color{util}#1}}
+
+\newcommand{\note}[1]{{\color{note}(#1)}}
+
+\newcommand{\shortcut}[1]{\texttt{#1}}
+
+\newcommand{\keyname}[1]{{\color{keyname}\textbf{\footnotesize#1}}}
+\newcommand{\keydesc}[1]{
+    \begin{spacing}{0.75}
+        \sffamily\scriptsize#1
+    \end{spacing}
+}
+
+\def\fkeyd#1#2#3 {
+    \draw ++(\X,\Y)       rectangle +(\base,\base)
+           +(0,0.85\base) node[text width=10cm,text height=1,anchor=north west] {\keyname{#1}\vspace{3px}\keydesc{#2}};
+    \setlength{\X}{\X + \base + #3\sep}
+}
+\def\unusedfkey#1#2 { % the second argument is just to allow spaces before the first one
+    \fill[very nearly transparent,gray]
+         ++(\X,\Y) rectangle +(\base,\base);
+    \draw[nearly transparent,gray]
+         +(\X,\Y+0.85*\base) node[text width=10cm,text height=1,anchor=north west] {\keyname{#1}};
+    \setlength{\X}{\X + \base + #2\sep}
+}
+
+\def\longfkeyd(#1)#2#3 {
+    \draw ++(\X,\Y)       rectangle +(#1,1\base)
+           +(0,0.65\base) node[text width=10cm,text height=1,text ragged,anchor=north west] {\keyname{#2}\vspace{3px}\keydesc{#3}};
+    \setlength{\X}{\X + #1 + \sep}
+}
+\def\unusedlongfkey(#1)#2#3 { % the third argument is just to allow spaces before the second one
+    \fill[very nearly transparent,gray]
+         ++(\X,\Y) rectangle +(#1,\base);
+    \draw[nearly transparent,gray]
+         +(\X+0.1\base,\Y+0.5\base) node[text width=2,text height=1] {\keyname{#2}};
+    \setlength{\X}{\X + #1 + \sep}
+}
+
+\def\keyd#1#2,#3#4 {
+    \draw ++(\X,\Y) rectangle +(\base,\base)
+           +(0.47\base,0.8\base) node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#1}}
+           +(0.47\base,0.3\base) node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#3}}
+           +(0.23\base,0.72\base) node[text width=1.4cm,text height=1,text ragged,anchor=west,align=left] {\keydesc{#2}}
+           +(0.23\base,0.22\base) node[text width=1.4cm,text height=1,text ragged,anchor=west,align=left] {\keydesc{#4}};
+
+    \draw [densely dotted] ++(\X,\Y+0.5\base) -- +(\base,0);
+    \setlength{\X}{\X + \base + \sep}
+}
+\def\keydd#1#2,#3#4,#5#6 {
+    \draw ++(\X,\Y) rectangle +(\base,\base)
+           +(0.47\base,0.88\base)   node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#1}}
+           +(0.47\base,0.53\base)       node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#3}}
+           +(0.47\base,0.2\base)       node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#5}}
+           +(0.23\base,0.8\base) node[text width=1.4cm,text height=1,text ragged,anchor=west] {\keydesc{#2}}
+           +(0.23\base,0.47\base)         node[text width=1.4cm,text height=1,text ragged,anchor=west] {\keydesc{#4}}
+           +(0.23\base,0.13\base)         node[text width=1.4cm,text height=1,text ragged,anchor=west] {\keydesc{#6}};
+
+    \draw [densely dotted] ++(\X,\Y+0.67\base) -- +(\base,0);
+    \draw [densely dotted] ++(\X,\Y+0.33\base) -- +(\base,0);
+    \setlength{\X}{\X + \base + \sep}
+}
+
+\def\unusedkeyd#1#2,#3#4 {
+    \fill[very nearly transparent,gray]
+         ++(\X,\Y) rectangle +(\base,\base);
+    \draw[nearly transparent,gray]
+           +(\X+0.47\base,\Y+0.8\base) node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#1}}
+           +(\X+0.47\base,\Y+0.3\base) node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#3}}
+           +(\X+0.23\base,\Y+0.72\base) node[text width=1.4cm,text height=1,text ragged,anchor=west,align=left] {\keydesc{#2}}
+           +(\X+0.23\base,\Y+0.22\base) node[text width=1.4cm,text height=1,text ragged,anchor=west,align=left] {\keydesc{#4}};
+
+    \draw[nearly transparent,densely dotted]
+         ++(\X,\Y+0.5\base) -- +(\base,0);
+    \setlength{\X}{\X + \base + \sep}
+}
+
+\def\unusedkeydHalf#1#2,#3#4 {
+    \fill[very nearly transparent,gray]
+         ++(\X,\Y) rectangle +(\base,\base);
+    \draw[nearly transparent,gray]
+           +(\X+0.47\base,\Y+0.8\base) node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#1}}
+           +(\X+0.23\base,\Y+0.72\base) node[text width=1.4cm,text height=1,text ragged,anchor=west,align=left] {\keydesc{#2}};
+    \draw
+           +(\X+0.47\base,\Y+0.3\base) node[text width=1cm,text height=1,anchor=north east,align=center] {\keyname{#3}}
+           +(\X+0.23\base,\Y+0.22\base) node[text width=1.4cm,text height=1,text ragged,anchor=west,align=left] {\keydesc{#4}};
+
+    \draw[densely dotted]
+         ++(\X,\Y+0.5\base) -- +(\base,0);
+    \setlength{\X}{\X + \base + \sep}
+}
+
+\def\unusedkey#1,#2 {
+    \fill[very nearly transparent,gray]
+         ++(\X,\Y) rectangle +(\base,\base);
+    \draw[nearly transparent,gray]
+         (\X+0.1\base,\Y+0.6\base) node[text width=1,text height=1,anchor=south] {\keyname{#1}}
+         +(0.0,-0.5\base)          node[text width=1,text height=1,anchor=south] {\keyname{#2}};
+
+    \draw[nearly transparent,densely dotted]
+         ++(\X,\Y+0.5\base) -- +(\base,0);
+    \setlength{\X}{\X + \base + \sep}
+}
+\def\unusedlongkey(#1)#2,#3 {
+    \fill[very nearly transparent,gray]
+         ++(\X,\Y) rectangle +(#1,\base);
+    \draw[nearly transparent,gray]
+          (\X+0.1\base,\Y+0.5\base) node[text width=2,text height=1,anchor=south] {\keyname{#2}}
+         +(0.0,-0.5\base)           node[text width=2,text height=1,anchor=south] {\keyname{#3}};
+
+    \draw[nearly transparent,densely dotted] ++(\X,\Y+0.5\base) -- +(#1,0);
+    \setlength{\X}{\X + #1 + \sep}
+}
+
+\begin{document}
+
+\begin{tikzpicture}[scale=1.6]
+    \tikzstyle{every path}=[draw]
+
+    \pgfsetcornersarced{\pgfpoint{1mm}{1mm}}
+
+    \newlength\X
+    \newlength\Y
+
+    \Y=0\unit
+
+    \draw (0\unit,\Y + 0.9\unit)
+          node[text width=\textwidth,text height=10,text centered,anchor=west]
+          {\LARGE \scshape Treetasks cheatsheet};
+    
+    \setlength{\Y}{\Y - \base - \unit + \sep}
+    % F row
+    \newcommand{\frowsep}{6}
+    \X=0\unit
+    \pgfmathparse{2*\frowsep}
+    \unusedfkey          {Esc}{\pgfmathresult}
+    \unusedfkey           {F1}
+    \unusedfkey      {F2}
+    \unusedfkey           {F3}
+    \unusedfkey          {F4}{\frowsep}
+    \unusedfkey           {F5}
+    \unusedfkey           {F6}
+    \unusedfkey           {F7}
+    \unusedfkey           {F8}{\frowsep}
+    \unusedfkey      {F9}
+    \unusedfkey           {F10}
+    \unusedfkey      {F11}
+    \unusedfkey      {F12}
+\ifx \shortkeyboard \defined
+    \setlength{\X}{\X + 0.5\base - \sep}
+    \unusedfkey     {Print\\Screen}
+    \unusedfkey          {Scroll\\Lock}
+    \unusedfkey          {Pause}
+\fi
+    
+    \setlength{\Y}{\Y - \base - \unit - \sep}
+    % numeric row
+    \X=0\unit
+    \keyd           {\texttildelow}{},{`}{}
+    \keyd           !{},1{}
+    \keyd           @{},2{}
+    \keyd           \#{} ,3{}
+    \keyd           {\$}{},4{}
+    \keyd     \%{},5{}
+    \keyd           \^{},6{}
+    \keyd           \&,7{}
+    \keyd            *,8{}
+    \keyd           ({},9{}
+    \keyd           ){},0{}
+    \keyd            \_,{\textendash}{}
+    \keyd           +{},={}
+    \unusedlongfkey (2\base)  {Backspace}
+\ifx \shortkeyboard \defined
+    \setlength{\X}{\X + 0.5\base - \sep}
+    \unusedfkey     {Insert}
+    \unusedfkey          {Home}{}
+    \unusedfkey          {Page\\Up}{}
+\fi
+
+    \setlength{\Y}{\Y - \base - \sep}
+    % upper row
+    \X=0\unit
+    \longfkeyd      (2\base - \unit) {Tab}{}
+    \keyd          Q{},q{quit}
+    \keyd          W{},w{}
+    \keyd          E{},e{}
+    \keyd          R{},r{}
+    \keyd           T{},t{}
+    \keyd           Y{},y{}
+    \keyd          U{},u{}
+    \keyd           I{},i{}
+    \keyd           O{},o{}
+    \keyd           P{},p{}
+    \keyd           \{{},[{}
+    \keyd           \}{},]{}
+    \unusedlongkey  (\base + \unit) {\textbar},{\textbackslash}
+\ifx \shortkeyboard \defined
+    \setlength{\X}{\X + 0.5\base - \sep}
+    \unusedfkey     {Delete}
+    \unusedfkey          {End}{}
+    \unusedfkey          {Page\\Down}{}
+\fi
+
+    \setlength{\Y}{\Y - \base - \sep}
+    % home row
+    \X=0\unit
+    \longfkeyd (2\base) {Esc}{ }
+    \keyd           A{},a{}
+    \keyd           S{},s{}
+    \keyd          D{},d{}
+    \keyd          F{},f{}
+    \keyd           G{},g{}
+    \keyd          H{},h{move to parent}
+    \keyd           J{move down (flat)},j{move down}
+    \keyd           K{move up (flat)},k{move up}
+    \keyd          L{},l{move to children}
+    \keyd           :{},;{}
+    \keyd           "{},'{}
+    \longfkeyd      (2\base + \sep) {Enter}{}
+
+    \setlength{\Y}{\Y - \base - \sep}
+    % lower row
+    \X=0\unit
+    \longfkeyd      (2\base + 2\sep) {Shift}{}
+    \keyd           Z{},z{}
+    \keyd          X{},x{}
+    \keyd          C{},c{}
+    \keyd           V{},v{}
+    \keyd          B{},b{}
+    \keyd          N{},n{}
+    \keyd           M{},m{}
+    \unusedkey           {\textless},,
+    \keyd           {\textgreater},.{\textcolor{gray}{}}
+    \keyd           ?{},/{}
+    \longfkeyd      (3\base) {Shift}{}
+\ifx \shortkeyboard \defined
+    \setlength{\X}{\X + 0.5\base - \sep + \base + \sep}
+    \fkeyd          {$\uparrow$}{\shortcut{k}}
+\fi
+
+    \setlength{\Y}{\Y - \base - \sep}
+    % space row
+    \X=0\unit
+    \longfkeyd      (1.5\base + \sep) {Ctrl}{}
+    \unusedlongfkey (\base)           {\faLinux}
+    \unusedlongfkey (\base + \sep)    {Alt}
+    \longfkeyd      (7\base)          {Space}{}
+    \unusedlongfkey (\base + \sep)    {Alt}
+    \unusedlongfkey (\base)           {\faLinux}
+    \unusedlongfkey (\base + 2\sep)   {Menu}
+    \longfkeyd      (1.5\base + \sep) {Ctrl}{}
+\ifx \shortkeyboard \defined
+    \setlength{\X}{\X + 0.5\base - \sep}
+    \fkeyd          {$\leftarrow$}{\shortcut{h}}
+    \fkeyd          {$\downarrow$}{\shortcut{j}}
+    \fkeyd          {$\leftarrow$}{\shortcut{l}}
+\fi
+
+\end{tikzpicture}
+
+\def\blockA{
+    \makeblock{6cm}{Block}{
+        You can write anything you want inside of these blocks
+    }
+}
+\def\blockB{
+    \makeblock{6cm}{Second Block}{
+        This is another example block.
+   }
+}
+\def\blockC{
+    \makeblock{6cm}{Placing blocks...}{
+        ...below each other is also possible
+    }
+}
+
+\vspace{+2ex}
+\scriptsize
+\Shortunderstack{ {\protect\blockA} {\protect\blockC} }
+\Shortunderstack{ {\protect\blockB}  }
+
+\end{document}
