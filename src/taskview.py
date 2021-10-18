@@ -63,7 +63,11 @@ class EditableString:
 
     @property
     def s(self):
-        return self.descriptor.get()
+        s = self.descriptor.get()
+        if s is None:
+            return ""
+        else:
+            return self.descriptor.get()
 
     @s.setter
     def s(self, value):
@@ -172,7 +176,6 @@ class EditableInt(EditableString):
         if self._validate(v):
             self.descriptor.set(v)
         
-
 class TaskView:
     x = CallOnSet("_redraw")
     y = CallOnSet("_redraw")
@@ -189,8 +192,6 @@ class TaskView:
         self.width = geometry.w
         self.height = geometry.h
         self.window = window
-
-
 
 class ListTask(TaskView):
     def __init__(self, task, geometry, window):

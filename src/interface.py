@@ -122,6 +122,9 @@ class Commands:
         Commands.edit_title()
         if new_task.title == "":
             State.tm.current.delete(new_task)
+            return False
+        else:
+            return True
 
     @staticmethod
     def new_task_child_bottom():
@@ -141,7 +144,8 @@ class Commands:
     @staticmethod
     def new_task_below():
         new_task = State.tm.current.new_task_sibling_below()
-        Commands._new_task_edit(new_task)
+        if not Commands._new_task_edit(new_task):
+            Commands.up()
 
     @staticmethod
     def left():
@@ -155,7 +159,7 @@ class Commands:
         try:
             State.tm.current.move_treedown()
         except TreeError:
-            logging.debug("new task")
+            Commands.new_task_child_top()
 
     @staticmethod
     def collapse():
@@ -346,15 +350,13 @@ class Scroller:
         self.cursor = cursor
         self.display_list = current_list[start:][:h]
 
-        logging.debug("dlist {}".format([t.title for t in self.display_list]))
-
         return self.display_list
 
 class Window:
     @staticmethod
     def handle_special_key(k):
         special_keys = {
-                'KEY_RESIZE' : Window.calculate_coordinates
+                #'KEY_RESIZE' : Window.calculate_coordinates
         }
 
         if k in special_keys:
