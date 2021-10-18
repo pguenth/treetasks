@@ -201,6 +201,10 @@ class Commands:
         else:
             Config.set("behaviour.show_cancelled", True)
 
+    @staticmethod
+    def quit_nosave():
+        if Window.get_input("Really quit without saving? (y/n)") == "y":
+            Window.quit()
 
     @staticmethod
     def quit():
@@ -209,7 +213,6 @@ class Commands:
 
     @staticmethod
     def save():
-
         State.tm.save_all()
         State.message = "Saved" 
 
@@ -297,6 +300,7 @@ class CommandHandler:
             'paste_below_append' : Commands.paste_below_append,
             'save' : Commands.save,
             'quit' : Commands.quit,
+            'quit_nosave' : Commands.quit_nosave,
             'copy_cursor' : Commands.copy_cursor,
             'schedule_down' : Commands.schedule_down,
             'schedule_up' : Commands.schedule_up,
@@ -414,8 +418,13 @@ class Window:
         Window.scroller_tree = Scroller(0, Config.get("behaviour.scrolloffset_tree"))
         Window.scroller_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
         Window.draw()
-        while True:
-            Window.loop()
+        Window._break_loop = False
+        while not Window._break_loop:
+            try:
+                Window.loop()
+            except KeyboardInterrupt:
+                State.tm.save_all()
+                Window.quit()
 
     @staticmethod
     def loop():
@@ -431,7 +440,7 @@ class Window:
 
     @staticmethod
     def quit():
-        pass
+        Window._break_loop = True
 
     @staticmethod
     def get_input(message):
@@ -645,7 +654,6 @@ class Window:
                     cursor_pos -= 1
                 while cursor_pos > 0:
                     if lines[cursor_line][cursor_pos] == " ":
-                        logging.debug("i break a".format(s, len(s)))
                         break
                     cursor_pos -= 1
             elif k == curses.KEY_SRIGHT:
@@ -657,7 +665,8 @@ class Window:
                     cursor_pos += 1
             elif k == curses.KEY_DC:
                 lines[cursor_line] = lines[cursor_line][:cursor_pos] + lines[cursor_line][cursor_pos + 1:]
-            elif k == curses.KEY_BACKSPACE:
+            elif k == curses.KEY_BACKSPACE or k == b"\x7f".decode("utf-8"):
+                # \x7f is shift-backspace on some terminals, backspace on others (VTE for example)
                 if not cursor_pos == 0:
                     lines[cursor_line] = lines[cursor_line][:cursor_pos - 1] + lines[cursor_line][cursor_pos:]
                     cursor_pos -= 1
@@ -686,10 +695,9 @@ class Window:
                     # move cursors
                     cursor_line += 1
                     cursor_pos = 0
-
-            elif k == b"\x7f".decode("utf-8"): #shift-backspace
-                logging.debug("i break d".format(s, len(s)))
-                return None
+            elif k == b"\x18".decode("utf-8"): #C-x
+                lines = None
+                break
             elif k == b"\x1b".decode("utf-8"): #escape
                 break
             elif type(k) == str:
@@ -698,6 +706,10 @@ class Window:
                     cursor_pos += 1
 
         curses.curs_set(0)
+
+        if lines is None:
+            return None
+
         return '\n'.join(lines)
 
 
