@@ -229,6 +229,30 @@ class Commands:
     def schedule_top():
         State.tm.current.move_schedule_top()
 
+    @staticmethod
+    def hide_categories():
+        cats = Window.get_input("Hide").split()
+        State.tm.current.hide_categories(cats)
+    
+    @staticmethod
+    def unhide_categories():
+        cats = Window.get_input("Unhide").split()
+        State.tm.current.unhide_categories(cats)
+
+    @staticmethod
+    def show_only_categories():
+        cats = Window.get_input("Show only").split()
+        State.tm.current.show_only_categories = cats
+
+    @staticmethod
+    def unhide_all_categories():
+        State.tm.current.unhide_all_categories()
+
+    @staticmethod
+    def show_all_categories():
+        State.tm.current.unhide_all_categories()
+        State.tm.current.show_only_categories = set()
+
 class CommandHandler:
     config_call = {
             'down' : Commands.down,
@@ -272,11 +296,17 @@ class CommandHandler:
             'paste_below_prepend' : Commands.paste_below_prepend,
             'paste_below_append' : Commands.paste_below_append,
             'save' : Commands.save,
+            'quit' : Commands.quit,
             'copy_cursor' : Commands.copy_cursor,
             'schedule_down' : Commands.schedule_down,
             'schedule_up' : Commands.schedule_up,
             'schedule_goto_today' : Commands.schedule_goto_today,
-            'schedule_top' : Commands.schedule_top
+            'schedule_top' : Commands.schedule_top,
+            'show_only_categories' : Commands.show_only_categories,
+            'show_all_categories' : Commands.show_all_categories,
+            'hide_categories' : Commands.hide_categories,
+            'unhide_categories' : Commands.unhide_categories,
+            'unhide_all_categories' : Commands.unhide_all_categories
     }
 
     def __init__(self):
@@ -310,7 +340,6 @@ class CommandHandler:
             action = None
 
         if callable(action):
-            logging.debug("running: " + str(action))
             action()
             self.keychain_scope = None
         else:
@@ -329,6 +358,13 @@ class Scroller:
         self.display_list = [None]
 
     def get_display_list(self, cursor, current_list):
+        if cursor is None:
+            self.cursor = cursor
+            self.display_list = current_list[:self.viewport_height]
+            self.list = current_list
+
+            return self.display_list
+
         assert cursor in current_list
 
         index_new = current_list.index(cursor)
@@ -370,6 +406,8 @@ class Window:
         #init colors
         curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
         curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        
+        curses.curs_set(0)
 
         Window.scr = stdscr
         Window.command_handler = CommandHandler()
@@ -395,6 +433,13 @@ class Window:
     def quit():
         pass
 
+    @staticmethod
+    def get_input(message):
+        msgstr = "-> " + message + ": "
+        maxh, maxw = Window.scr.getmaxyx()
+        maxw -= len(msgstr) + 1
+        Window.scr.addstr(maxh - 1, 0, msgstr) 
+        return Window.insert(len(msgstr), maxh - 1, maxw)
 
     @staticmethod
     def calculate_coordinates():
@@ -461,7 +506,8 @@ class Window:
 
     @staticmethod
     def draw_description(win, coords):
-        Window.description_task = DescriptionTask(State.tm.current.cursor, coords, win)
+        if not State.tm.current.cursor is None:
+            Window.description_task = DescriptionTask(State.tm.current.cursor, coords, win)
 
     @staticmethod
     def draw_schedule(win, coords):
@@ -479,13 +525,27 @@ class Window:
         max_tasks = int((h - 2) / 3)
 
         Window.scroller_schedule.viewport_height = max_tasks
-        logging.debug("c new win {}".format(State.tm.current.cursor_sched))
         dl = Window.scroller_schedule.get_display_list(
                 State.tm.current.cursor_sched,
                 State.tm.current.schedule_list)
 
         for i, task in enumerate(dl):
             ScheduleTask(task, RectCoordinates(x, y + i * 3, x + coords.w, y + i * 3 + 3), win)
+
+    @staticmethod
+    def draw_filterstr(win, coords):
+        so_cat = State.tm.current.show_only_categories
+        hi_cat = State.tm.current.hidden_categories
+        if not so_cat is None and len(so_cat) != 0:
+            filter_str = " Showing only: " + " ".join(so_cat) + " "
+        elif not len(hi_cat) == 0:
+            filter_str = " Hiding: " + " ".join(hi_cat) + " "
+        else:
+            filter_str = ""
+
+        l = len(filter_str)
+
+        win.addstr(coords.tasks.br.y + 1, coords.tasks.br.x - l, filter_str, curses.A_DIM)
 
     @staticmethod
     def draw():
@@ -496,7 +556,7 @@ class Window:
 
         wincoords = Window.calculate_coordinates()
 
-        Window.scr.addstr(y - 1, 0, "-> " + State.message)
+        Window.scr.addstr(y - 1, 0, "-> " + State.message + " ")
         Window.draw_tasks(Window.scr, wincoords.tasks)
 
         if Config.get("appearance.schedule_show"):
@@ -509,6 +569,8 @@ class Window:
             Window.scr.hline(wincoords.cross.y, wincoords.tasks.ul.x,
                     curses.ACS_HLINE, wincoords.cross.x - 1)
 
+        Window.draw_filterstr(Window.scr, wincoords)
+
         Window.scr.refresh()
 
     @staticmethod
@@ -518,6 +580,7 @@ class Window:
         lines = s.splitlines()
         if len(lines) == 0:
             lines.append("")
+        curses.curs_set(2)
 
         # initialise state variables
         cursor_line = len(lines) - 1
@@ -634,6 +697,7 @@ class Window:
                     lines[cursor_line] = lines[cursor_line][:cursor_pos] + k + lines[cursor_line][cursor_pos:]
                     cursor_pos += 1
 
+        curses.curs_set(0)
         return '\n'.join(lines)
 
 

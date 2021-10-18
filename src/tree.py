@@ -157,6 +157,24 @@ class Task(LinkedListNodeMixin):
         self.collapsed = not self.collapsed
         return self.collapsed
 
+    @property
+    def _category_visible(self):
+        assert type(self.root.tasktree.show_only_categories) is set
+        assert type(self.root.tasktree.hidden_categories) is set
+
+        so_cat = self.root.tasktree.show_only_categories 
+        if not so_cat is None and len(so_cat) != 0:
+            intersection = so_cat & set(self.categories)
+            if len(intersection) == 0:
+                return False
+            else:
+                return True
+
+        intersection = self.root.tasktree.hidden_categories & set(self.categories)
+        if len(intersection) == 0:
+            return True
+        else:
+            return False
 
     @property
     def show(self):
@@ -171,7 +189,23 @@ class Task(LinkedListNodeMixin):
         if not Config.get("behaviour.show_cancelled") and self.cancelled:
             return False
 
-        return True
+        return self._category_visible
+
+    @property
+    def show_on_schedule(self):
+        if self.scheduled is None and self.due is None:
+            # not scheduled or due
+            return False
+
+        if self.done or self.cancelled:
+            # done or cancelled
+            return False
+
+        if Config.get("behaviour.filter_categories_schedule"):
+            return self._category_visible
+        else:
+            return True
+
 
     @property
     def cancelled(self):
@@ -305,21 +339,44 @@ class TaskTreeSortKey(Enum):
     SCHEDULED = 4
     CATEGORY = 5
 
+class AnyTaskTreeAwareNode(AnyLinkedListNode):
+    def __init__(self, tasktree):
+        super().__init__()
+        self.tasktree = tasktree
+
 class TaskTree:
     def __init__(self, path, manager, parser=TaskTreeParserXML):
         self.path = path
-        self.root = AnyLinkedListNode()
+        self.root = AnyTaskTreeAwareNode(self)
         self.parser = parser()
         self.cursor = None
         self.manager = manager
 
         self.sort_key = TaskTreeSortKey.NATURAL
         self.sort_reverse = False
+        
+        # if show_only_categories is not empty, hidden_categories is ignored
+        self.hidden_categories = set()
+        self.show_only_categories = set() 
 
         self.parser.load(self.path, self.root)
-        self.cursor = self.display_list[0]
-        self.cursor_sched = self.schedule_list[0]
+        self.cursor = None if len(self.display_list) == 0 else self.display_list[0]
+        self.cursor_sched = None if len(self.schedule_list) == 0 else self.schedule_list[0]
 
+    @property
+    def cursor(self):
+        # try setting the cursor to the first element in the display list
+        # if it somehow vanished
+        dl = self.display_list
+        if not self._cursor in dl and not len(dl) == 0:
+            self._cursor = dl[0]
+
+        return self._cursor
+
+    @cursor.setter
+    def cursor(self, cursor):
+        self._cursor = cursor
+            
     @property
     def display_list(self):
         self.update_order()
@@ -336,17 +393,32 @@ class TaskTree:
     @property
     def schedule_list(self):
         def filt(task):
-            if isinstance(task, AnyNode):
+            if not isinstance(task, AnyNode):
+                return task.show_on_schedule
+            else:
                 return False
-            if task.scheduled is None and task.due is None:
-                return False
-
-            return True
 
         sched_list = list(PreOrderIter(self.root, filt))
         sched_list.sort(key=lambda t: t.sort_date)
 
         return sched_list
+
+    def hide_categories(self, categories):
+        self.hidden_categories |= set(categories)
+
+    def unhide_categories(self, categories):
+        self.hidden_categories -= set(categories)
+
+    def unhide_all_categories(self):
+        self.hidden_categories = set()
+
+    @property
+    def show_only_categories(self):
+        return self._show_only_categories
+
+    @show_only_categories.setter
+    def show_only_categories(self, categories):
+        self._show_only_categories = set(categories)
 
     def _sort(self, key):
         self.root.sort_tree(key=key, reverse=self.sort_reverse)

@@ -76,8 +76,11 @@ class Config:
                 'schedule_up' : 'm',
                 'schedule_top' : 'M',
                 'schedule_goto_today' : 'N',
-
-
+                'show_only_categories' : 'z',
+                'show_all_categories' : 'Z',
+                'hide_categories' : 'r',
+                'unhide_categories' : 'R',
+                'unhide_all_categories' : 'e'
             },
             'behaviour' : {
                 'scrolloffset_tree' : 2,
@@ -86,7 +89,8 @@ class Config:
                 'show_cancelled' : False,
                 'autosave' : True,
                 'sort_tagged_below' : True,
-                'follow_schedule' : True
+                'follow_schedule' : True,
+                'filter_categories_schedule' : False
             }
     }
 
