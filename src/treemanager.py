@@ -84,7 +84,7 @@ class TreeManager:
         if len(self.trees) == 1:
             raise IndexError("Cannot close the last tree")
 
-        index = self.trees.index(tree) - len(self.trees)
+        index = self.trees.index(tree) - len(self.trees) + 1
         
         self.trees.remove(tree)
 

@@ -79,20 +79,27 @@ class Commands:
         State.tm.current.set_order(TaskTreeSortKey.DATE, reverse)
 
     @staticmethod
+    def _movement(delta, primary):
+        if Config.get("behaviour.primary_movement_hierarchic") ^ primary:
+            State.tm.current.move_cursor_flat(delta)
+        else:
+            State.tm.current.move_cursor_hierarchic(delta)
+
+    @staticmethod
     def down():
-        State.tm.current.move_cursor_hierarchic(1)
+        Commands._movement(1, True)
 
     @staticmethod
     def up():
-        State.tm.current.move_cursor_hierarchic(-1)
+        Commands._movement(-1, True)
 
     @staticmethod
-    def down_flat():
-        State.tm.current.move_cursor_flat(1)
+    def down_secondary():
+        Commands._movement(1, False)
 
     @staticmethod
-    def up_flat():
-        State.tm.current.move_cursor_flat(-1)
+    def up_secondary():
+        Commands._movement(-1, False)
 
     @staticmethod
     def cut_task():
@@ -230,19 +237,19 @@ class Commands:
 
     @staticmethod
     def schedule_up():
-        State.tm.current.move_schedule_up()
+        State.tm.schedule_in_use.move_up()
 
     @staticmethod
     def schedule_down():
-        State.tm.current.move_schedule_down()
+        State.tm.schedule_in_use.move_down()
 
     @staticmethod
     def schedule_goto_today():
-        State.tm.current.move_schedule_today()
+        State.tm.schedule_in_use.move_today()
 
     @staticmethod
     def schedule_top():
-        State.tm.current.move_schedule_top()
+        State.tm.schedule_in_use.move_top()
 
     @staticmethod
     def hide_categories():
@@ -275,6 +282,10 @@ class Commands:
     @staticmethod
     def move_cursor_down():
         State.tm.current.move_selected_task_down()
+
+    @staticmethod
+    def move_cursor_left():
+        State.tm.current.move_selected_task_treeup()
 
     @staticmethod
     def set_scheduled_today():
@@ -317,8 +328,8 @@ class CommandHandler:
     config_call = {
             'down' : Commands.down,
             'up' : Commands.up,
-            'down_flat' : Commands.down_flat,
-            'up_flat' : Commands.up_flat,
+            'down_secondary' : Commands.down_secondary,
+            'up_secondary' : Commands.up_secondary,
             'left' : Commands.left,
             'right' : Commands.right,
             'collapse' : Commands.collapse,
@@ -374,6 +385,7 @@ class CommandHandler:
             'set_due_tomorrow' : Commands.set_due_tomorrow,
             'move_cursor_up' : Commands.move_cursor_up,
             'move_cursor_down' : Commands.move_cursor_down,
+            'move_cursor_left' : Commands.move_cursor_left,
             'sort_date_rev' : lambda : Commands.sort_date(True),
             'sort_date' : Commands.sort_date,
             'toggle_sort_tagged_below' : lambda : Commands.toggle_config("behaviour.sort_tagged_below"),
@@ -382,6 +394,7 @@ class CommandHandler:
             'new_tab' : Commands.new_tab,
             'close_tab' : Commands.close_tab,
             'toggle_global_schedule' : lambda : Commands.toggle_config("behaviour.global_schedule"),
+            'toggle_movement' : lambda : Commands.toggle_config("behaviour.primary_movement_hierarchic")
     }
 
     def __init__(self):
@@ -626,7 +639,7 @@ class Window:
                 attr = curses.A_STANDOUT
             else:
                 attr = curses.A_NORMAL
-            tab_name = t.name[-(tab_width - 2):]
+            tab_name = t.name[-(tab_width - 3):].center(tab_width - 3)
             win.addstr(0, x, "[{}]".format(tab_name), attr)
             x += tab_width
 

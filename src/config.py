@@ -35,16 +35,18 @@ class Config:
                 'up' : 'k',
                 'left' : 'h',
                 'right' : 'l',
-                'down_flat' : 'J',
-                'up_flat' : 'K',
+                'down_secondary' : 'Y',
+                'up_secondary' : 'U',
+                'toggle_movement' : 'u',
 
                 'schedule_down' : 'n',
                 'schedule_up' : 'm',
                 'schedule_top' : 'M',
                 'schedule_goto_today' : 'N',
 
-                'move_cursor_up' : 'B',
-                'move_cursor_down' : 'b',
+                'move_cursor_up' : 'K',
+                'move_cursor_down' : 'J',
+                'move_cursor_left' : 'H',
 
                 'replace_title' : 'C',
                 'edit_title' : 'i',
@@ -54,18 +56,19 @@ class Config:
                 'edit_priority' : 'cp',
                 'edit_text' : 'a',
 
-                'toggle_done' : 'f',
-                'toggle_cancelled' : 'g',
+                'toggle_done' : 'g',
+                'toggle_cancelled' : 'v',
 
                 'set_scheduled_today' : 'e',
                 'set_scheduled_tomorrow' : 'E',
                 'set_due_today' : 'r',
                 'set_due_tomorrow' : 'R',
 
-                'collapse' : 'v',
-                'toggle_show_done' : 'F',
-                'toggle_show_cancelled' : 'G',
-                'toggle_sort_tagged_below' : 'V',
+                'collapse' : 'f',
+                'toggle_show_done' : 'G',
+                'toggle_show_cancelled' : 'V',
+                'toggle_sort_tagged_below' : 'F',
+                'toggle_global_schedule' : 'L',
                 'show_only_categories' : 'z',
                 'show_all_categories' : 'Z',
                 'hide_categories' : 'x',
@@ -92,8 +95,8 @@ class Config:
                 'new_task_above' : 'O',
                 'new_task_below' : 'o',
 
-                'delete_task' : 'dD',
-                'cut_task' : 'dd',
+                'delete_task' : 'D',
+                'cut_task' : 'd',
                 'paste_before' : 'pP',
                 'paste_after' : 'pp',
                 'paste_below_prepend' : 'pO',
@@ -115,10 +118,12 @@ class Config:
                 'show_cancelled' : False,
                 'autosave' : True,
                 'sort_tagged_below' : True,
-                'follow_schedule' : True,
                 'filter_categories_schedule' : False,
+                'follow_schedule' : True,
                 'auto_move_up' : True,
                 'roundtrip' : False,
+                'global_schedule' : False,
+                'primary_movement_hierarchic' : True
             }
     }
 

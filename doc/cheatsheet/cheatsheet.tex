@@ -236,9 +236,9 @@
     \unusedkey          W{},w{}
     \keyd          E{set scheduled tomorrow},e{set scheduled today}
     \keyd          R{set due tomorrow},r{set due today}
-    \keyd           T{},t{open new tab (in dev)}
-    \keyd           Y{},y{copy cursor}
-    \keyd          U{redo (currently in dev)},u{undo (currently in dev)}
+    \keyd           T{previous tab},t{open/create new tab}
+    \keyd           Y{move down (secondary)},y{copy cursor}
+    \keyd          U{move up (secondary)},u{toggle movement}
     \keyd           I{new child (top)},i{edit title}
     \keyd           O{new task above},o{new task below}
     \keyd           P{},p{paste\note{1}}
@@ -257,14 +257,14 @@
     \X=0\unit
     \longfkeyd (2\base) {Caps Lock}{ }
     \keyd           A{new child (bottom)},a{edit text}
-    \keyd           S{save},s{sort\note{3}}
-    \keyd          D{},d{cut\note{2}}
-    \keyd          F{toggle show done},f{toggle done}
-    \keyd           G{toggle show cancelled},g{toggle cancelled}
+    \keyd           S{save},s{sort\note{2}}
+    \keyd          D{delete},d{cut}
+    \keyd           F{toggle sort tagged below},f{toggle collapse}
+    \keyd          G{toggle show done},g{toggle done}
     \keyd          H{},h{move to parent}
-    \keyd           J{move down (flat)},j{move down}
-    \keyd           K{move up (flat)},k{move up}
-    \keyd          L{},l{move to children}
+    \keyd           J{move selected task down},j{move down}
+    \keyd           K{move selected task up},k{move up}
+    \keyd          L{toggle global schedule},l{move to children}
     \unusedkey           :{},;{}
     \unusedkey           "{},'{}
     \longfkeyd      (2\base + \sep) {Enter}{confirm editing}
@@ -275,9 +275,9 @@
     \longfkeyd      (2\base + 2\sep) {Shift}{}
     \keyd           Z{show all categories},z{show only categories}
     \keydd          {\textasciicircum X}{abort editing},X{unhide categories},x{hide categories}
-    \keyd          C{replace title},c{edit properties\note{4}}
-    \keyd           V{toggle sort tagged below},v{toggle collapse}
-    \keyd          B{move selected task up},b{move selected task down}
+    \keyd          C{replace title},c{edit properties\note{3}}
+    \keyd           V{toggle show cancelled},v{toggle cancelled}
+    \keyd          B{},b{}
     \keyd          N{today\\(schedule)},n{down\\(schedule)}
     \keyd           M{top\\(schedule)},m{up\\(schedule)}
     \unusedkey           {\textless},,
@@ -330,7 +330,7 @@
    }
 }
 \def\blockC{
-    \makeblock{6cm}{Sort \note{3}}{
+    \makeblock{6cm}{Sort \note{2}}{
         Keychains for reordering the tree.
         The "natural" order defined by moving around tasks is always saved.
         Replace the second letter of the keychain by its corresponding capital to order in reverse.
@@ -346,7 +346,7 @@
     }
 }
 \def\blockD{
-    \makeblock{6cm}{Edit \note{4}}{
+    \makeblock{6cm}{Edit \note{3}}{
         Keychains for editing tasks.
         \begin{itemize}
             \item \shortcut{cp} Edit priority
@@ -363,13 +363,50 @@
 
     }
 }
+\def\blockE{
+    \makeblock{6cm}{Movement}{
+        You can traverse the tree in two ways:
+        \begin{itemize}
+            \item \textbf{Flat:} The next/previous tasks are the tasks on the next/previous line, regardless of hierarchy
+            \item \textbf{Hierarchically:} Traversing only traverses the siblings, visiting children/parents need explicit operations.
+        \end{itemize}
+        Treetasks always keeps both ways at your hands: there is a primary and a secondary mode of movement, the primary is mapped on the well-known \shortcut{j} and \shortcut{k} keys per default, and the secondary is mapped on \shortcut{Y} and \shortcut{U} keys per default.
+        By pressing \shortcut{u} (default) the primary and secondary modes are swapped.
+        The default order can be set by the config variable \texttt{behaviour.primary\_movement\_hierarchic}.
+        When \texttt{True} the primary mode is hierarchical movement, when \texttt{False} the primary mode is flat movement.
 
+        For making hierarchical movement more practical there is the option \texttt{behaviour.auto\_move\_up} which when set to \texttt{True} (default) moves the cursor as in flat movement for one step when reaching the end of a set of children.
+
+        When \texttt{behaviour.roundtrip} is set the cursor can go around the ends of the list. If \texttt{behaviour.auto\_move\_up} is not set, children are also traversed in roundtrips.
+        
+    }
+}
+
+\def\blockF{
+    \makeblock{6cm}{Schedule}{
+        The schedule shows tasks that are not marked as done or cancelled and have a scheduled date or due date assigned. 
+        They are sorted by the earlier date of those two.
+        Tasks whose scheduled date or due date lies in the past are printed in red, tasks that are scheduled or due today are printed in yellow.
+
+        The schedule has its own independent cursor which is controlled by \shortcut{n} and \shortcut{m} by default. You can directly skip to the top using \shortcut{M} and to today using \shortcut{N}.
+
+        \begin{itemize}
+            \item \texttt{behaviour.follow\_schedule}: If set to \texttt{True} cursor movements in the schedule result in the tree cursor jumping to the task selected in the schedule (only if the task is currently shown in the tree). Default: \texttt{True}.
+            \item \texttt{behaviour.filter\_categories\_schedule}: If set to \texttt{True}, the schedule is filtered by the same category filters that apply to the tree. Default: \texttt{False}.
+            \item \texttt{behaviour.global\_schedule}: If set to \texttt{True}, the schedule is generated from all tasks from all open tabs. If set to \texttt{False}, every tab has its own schedule. If a global schedule is used, a + sign denotes tasks that are not in the currently shown tab. If the cursor follows the schedule cursor, tabs are automatically switched, too. Default: \texttt{True}.
+
+        \end{itemize}
+
+        
+    }
+}
 
 \vspace{+2ex}
 \scriptsize
 \Shortunderstack{ {\protect\blockA}  }
-\Shortunderstack{ {\protect\blockB}  }
 \Shortunderstack{ {\protect\blockC}  }
 \Shortunderstack{ {\protect\blockD}  }
+\Shortunderstack{ {\protect\blockE}  }
+\Shortunderstack{ {\protect\blockF}  }
 
 \end{document}

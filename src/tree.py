@@ -730,6 +730,15 @@ class TaskTree:
             self.paste(task=task, before=False, below=False)
         self.cursor = task
 
+    def move_selected_task_treeup(self):
+        if isinstance(self.cursor.parent, AnyNode):
+            return
+
+        task = self.cursor
+        self.move_treeup()
+        self.paste(task=task, before=True, below=False)
+        self.cursor = task
+
 
     def _move_before_deleting(self):
         if len(self.cursor.siblings) == 0:
