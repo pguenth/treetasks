@@ -555,6 +555,20 @@ class Window:
         return c
 
     @staticmethod
+    def draw_tasks_decoration(win, x, y, width, height):
+        cols = TaskWindowColumns(width)
+
+        if 'c' in Config.get("appearance.columns"): 
+            win.vline(y, x + cols.category.x - 1, curses.ACS_VLINE, height)
+            win.addnstr(y, x + cols.category.x, "Categories", cols.category.w, curses.A_BOLD)
+        if 'd' in Config.get("appearance.columns"): 
+            win.vline(y, x + cols.due.x - 1, curses.ACS_VLINE, height)
+            win.addnstr(y, x + cols.due.x, "Due", cols.due.w, curses.A_BOLD)
+        if 's' in Config.get("appearance.columns"): 
+            win.vline(y, x + cols.scheduled.x - 1, curses.ACS_VLINE, height)
+            win.addnstr(y, x + cols.scheduled.x, "Scheduled", cols.scheduled.w, curses.A_BOLD)
+
+    @staticmethod
     def draw_tasks(win, coords):
         x = coords.ul.x + 1
         y = coords.ul.y
@@ -565,8 +579,11 @@ class Window:
                 State.tm.current.cursor,
                 State.tm.current.display_list)
 
+        Window.draw_tasks_decoration(win, x, y, coords.w - 1, h)
+        y += 1
+
         for i, task in enumerate(dl):
-            ListTask(task, RectCoordinates(x, y + i, x + coords.w, y + i), win)
+            ListTask(task, RectCoordinates(x, y + i, coords.br.x, y + i), win)
 
     @staticmethod
     def draw_description(win, coords):
@@ -583,7 +600,11 @@ class Window:
         spacing_len = int((w - len(title_str)) / 2)
         spacing = " " * (0 if spacing_len < 0 else spacing_len)
         win.addnstr(y, x, spacing + "Schedule", w, curses.A_BOLD)
+        y += 1
 
+        scoords = ScheduleCoordinates(w)
+        win.addnstr(y, x + scoords.due_offset, "Due", scoords.datewidth, curses.A_DIM)
+        win.addnstr(y, x + scoords.scheduled_offset, "Scheduled", scoords.datewidth, curses.A_DIM)
         y += 2
 
         max_tasks = int((h - 2) / 3)
@@ -594,7 +615,7 @@ class Window:
                 State.tm.current.schedule_list)
 
         for i, task in enumerate(dl):
-            ScheduleTask(task, RectCoordinates(x, y + i * 3, x + coords.w, y + i * 3 + 3), win)
+            ScheduleTask(task, RectCoordinates(x, y + i * 3, coords.br.x, y + i * 3 + 3), win)
 
     @staticmethod
     def draw_filterstr(win, coords):

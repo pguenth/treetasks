@@ -1,9 +1,9 @@
 import curses
 import logging
-from datetime import date
+from datetime import date, timedelta
 
 from .tree import TaskState
-from .geometry import TaskWindowColumns
+from .geometry import TaskWindowColumns, ScheduleCoordinates
 from .config import Config
 from .state import State
 
@@ -116,8 +116,30 @@ class EditableDate(EditableString):
         date = self.descriptor.get()
         if date is None:
             return ""
+
+        if self.maxcols < 8:
+            if date == date.today():
+                dstr = "today"
+            elif date == date.today() + timedelta(days=1):
+                dstr = "tmrrw"
+            else:
+                dstr = date.strftime("%m-%d")
+        elif self.maxcols < 10:
+            if date == date.today():
+                dstr = "today"
+            elif date == date.today() + timedelta(days=1):
+                dstr = "tomorrow"
+            else:
+                dstr = date.strftime("%y-%m-%d")
         else:
-            return str(date)
+            if date == date.today():
+                dstr = "today"
+            elif date == date.today() + timedelta(days=1):
+                dstr = "tomorrow"
+            else:
+                dstr = date.strftime("%Y-%m-%d")
+
+        return dstr
 
     @s.setter
     def s(self, value):
@@ -197,8 +219,7 @@ class ListTask(TaskView):
     def __init__(self, task, geometry, window):
         super().__init__(task, geometry, window)
 
-        self.cols = TaskWindowColumns()
-        self._calculate_coordinates()
+        self.cols = TaskWindowColumns(self.width)
 
         self.categories = None
         self.scheduled = None
@@ -211,47 +232,6 @@ class ListTask(TaskView):
         self._redraw()
 
         self.task.listview = self
-
-    # limits the calculated column widths so they
-    # fill at maximum appearance.columns_max_total_ratio * task_w
-    # use only columns that will be displayed
-    @staticmethod
-    def _limit_col_widths(task_w, columns):
-        wsum = columns.real_sum
-
-        if wsum > Config.get("appearance.columns_max_total_ratio") * task_w:
-            f = Config.get("appearance.columns_max_total_ratio") * task_w / wsum 
-            columns.category.w = int(columns.category.w * f)
-            columns.scheduled.w = int(columns.scheduled.w * f)
-            columns.due.w = int(columns.due.w * f)
-
-
-    @staticmethod
-    def _get_column_width(task_w, col_name):
-        r = Config.get("appearance.col_" + col_name + "_ratio")
-        mn = Config.get("appearance.col_" + col_name + "_min")
-        mx = Config.get("appearance.col_" + col_name + "_max")
-
-        w = int(task_w * r)
-        if w < mn:
-            w = mn
-        if w > mx:
-            w = mx
-
-        return w
-
-    def _calculate_coordinates(self):
-        self.cols.category.w = self._get_column_width(self.width, "category")
-        self.cols.scheduled.w = self._get_column_width(self.width, "scheduled")
-        self.cols.due.w = self._get_column_width(self.width, "due")
-        self._limit_col_widths(self.width, self.cols)
-
-        column_order = Config.get("appearance.columns")
-        x_start = self.width - self.cols.real_sum - 3
-        for cname in column_order:
-            this_col = self.cols.column_by_letter(cname)
-            this_col.x = x_start
-            x_start += this_col.w + 1
 
     def _readd_columns(self):
         if 'c' in Config.get("appearance.columns") and self.categories is None:
@@ -302,7 +282,7 @@ class ListTask(TaskView):
                 self.cols.category.w
             )
             self.categories.attr = attr
-            self.window.addch(self.y, self.x + self.cols.category.x - 1, curses.ACS_VLINE)
+            #self.window.addch(self.y, self.x + self.cols.category.x - 1, curses.ACS_VLINE)
 
         if not self.due is None:
             self.due.place(
@@ -312,7 +292,7 @@ class ListTask(TaskView):
                 self.cols.due.w
             )
             self.due.attr = attr
-            self.window.addch(self.y, self.x + self.cols.due.x - 1, curses.ACS_VLINE)
+            #self.window.addch(self.y, self.x + self.cols.due.x - 1, curses.ACS_VLINE)
 
         if not self.scheduled is None:
             self.scheduled.place(
@@ -322,11 +302,13 @@ class ListTask(TaskView):
                 self.cols.scheduled.w
             )
             self.scheduled.attr = attr
-            self.window.addch(self.y, self.x + self.cols.scheduled.x - 1, curses.ACS_VLINE)
+            #self.window.addch(self.y, self.x + self.cols.scheduled.x - 1, curses.ACS_VLINE)
 
     def _redraw(self):
         if self._noredraw:
             return
+
+        self.cols.taskwindow_width = self.width
 
         x = self.x
         for i in range(len(self.task.ancestors) - 1):
@@ -457,8 +439,12 @@ class ScheduleTask(TaskView):
         if self.task == State.tm.current.cursor_sched:
             attr |= curses.A_REVERSE
 
-        self.scheduled.place(x + 1, y, self.window)
-        self.due.place(x + 12, y, self.window)
+        sched_coords = ScheduleCoordinates(self.width)
+        self.scheduled.place(x + sched_coords.scheduled_offset,
+                y, self.window, sched_coords.datewidth)
+        self.due.place(x + sched_coords.due_offset,
+                y, self.window, sched_coords.datewidth)
+
         self.title.place(x + 1, y + 1, self.window, self.width - 2)
 
         self.title.attr = attr
