@@ -381,6 +381,7 @@ class CommandHandler:
             'previous_tab' : Commands.prev_tab,
             'new_tab' : Commands.new_tab,
             'close_tab' : Commands.close_tab,
+            'toggle_global_schedule' : lambda : Commands.toggle_config("behaviour.global_schedule"),
     }
 
     def __init__(self):
@@ -453,8 +454,6 @@ class Window:
         Window.scr = DeepcopySafeCursesWindow(stdscr)
         Window.command_handler = CommandHandler()
         Window.scroller_tabbar = Scroller(0, 0)
-        Window.scroller_global_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
-        Window.cursor_global_schedule = None if len(State.tm.global_schedule_list) == 0 else State.tm.global_schedule_list[0]
 
         Window.draw()
         Window._break_loop = False
@@ -593,10 +592,8 @@ class Window:
 
         max_tasks = int((h - 2) / 3)
 
-        Window.scroller_schedule.viewport_height = max_tasks
-        dl = Window.scroller_schedule.get_display_list(
-                State.tm.current.cursor_sched,
-                State.tm.current.schedule_list)
+        State.tm.schedule_in_use.scroller.viewport_height = max_tasks
+        dl = State.tm.schedule_in_use.display_list
 
         for i, task in enumerate(dl):
             ScheduleTask(task, RectCoordinates(x, y + i * 3, coords.br.x, y + i * 3 + 3), win)

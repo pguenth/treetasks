@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from .config import Config
 from .node import LinkedListNodeMixin, AnyLinkedListNode
 from .scroller import Scroller
+from .referenced import ReferencedDescriptor
 import logging
 import datetime
 
@@ -353,6 +354,59 @@ class TaskTreeParserJSON:
         print("saving json file", path)
         pass
 
+class Schedule:
+    def __init__(self, list_descriptor, move_callback):
+        self._list_descriptor = list_descriptor
+        self.move_callback = move_callback
+
+        self.cursor = None
+        self.scroller = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
+
+    @property
+    def display_list(self):
+        return self.scroller.get_display_list(self.cursor, self.list)
+
+    @property
+    def cursor(self):
+        if self._cursor is None:
+            self._cursor = None if len(self.list) == 0 else self.list[0]
+
+        return self._cursor
+
+    @cursor.setter
+    def cursor(self, value):
+        self._cursor = value
+
+    @property
+    def list(self):
+        return self._list_descriptor.get()
+
+    def move_up(self):
+        index = self.list.index(self.cursor)
+        self.cursor= self.list[max(0, index - 1)]
+
+        self.move_callback()
+
+    def move_down(self):
+        index = self.list.index(self.cursor)
+        self.cursor= self.list[min(len(self.list) - 1, index + 1)]
+
+        self.move_callback()
+
+    def move_top(self):
+        self.cursor = self.list[0]
+
+        self.move_callback()
+
+    def move_today(self):
+        while self.cursor.sort_date < date.today():
+            self.move_down()
+
+        while self.cursor.sort_date > date.today():
+            self.move_up()
+
+        self.move_callback()
+
 
 class TaskTreeSortKey(Enum):
     NATURAL = 0
@@ -380,9 +434,9 @@ class TaskTree:
         self.parser = parser()
         self.cursor = None
         self.manager = manager
+        self.schedule = Schedule(ReferencedDescriptor(TaskTree.schedule_list, self), self.sync_cursors)
 
         self.scroller_tree = Scroller(0, Config.get("behaviour.scrolloffset_tree"))
-        self.scroller_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
 
         self.sort_key = TaskTreeSortKey.NATURAL
         self.sort_reverse = False
@@ -399,7 +453,6 @@ class TaskTree:
             self.parser.load(self.path, self.root)
 
         self.cursor = None if len(self.display_list) == 0 else self.display_list[0]
-        self.cursor_sched = None if len(self.schedule_list) == 0 else self.schedule_list[0]
 
     @property
     def cursor(self):
@@ -512,34 +565,9 @@ class TaskTree:
         Config.set("behaviour.sort_tagged_below", stb)
 
     def sync_cursors(self):
-        if Config.get("behaviour.follow_schedule") and self.cursor_sched in self.display_list:
-            self.cursor = self.cursor_sched
+        if Config.get("behaviour.follow_schedule") and self.schedule.cursor in self.display_list:
+            self.cursor = self.schedule.cursor
 
-    def move_schedule_up(self):
-        index = self.schedule_list.index(self.cursor_sched)
-        self.cursor_sched = self.schedule_list[max(0, index - 1)]
-
-        self.sync_cursors()
-
-    def move_schedule_down(self):
-        index = self.schedule_list.index(self.cursor_sched)
-        self.cursor_sched = self.schedule_list[min(len(self.schedule_list) - 1, index + 1)]
-
-        self.sync_cursors()
-
-    def move_schedule_top(self):
-        self.cursor_sched = self.schedule_list[0]
-
-        self.sync_cursors()
-
-    def move_schedule_today(self):
-        while self.cursor_sched.sort_date < date.today():
-            self.move_schedule_down()
-
-        while self.cursor_sched.sort_date > date.today():
-            self.move_schedule_up()
-
-        self.sync_cursors()
 
     def move_cursor_flat(self, delta):
         tasks = self.display_list

@@ -1,4 +1,6 @@
-from .tree import TaskTree, TaskTreeSortKey, TaskTreeParserXML
+from .tree import TaskTree, TaskTreeSortKey, TaskTreeParserXML, Schedule
+from .referenced import ReferencedDescriptor
+from .config import Config
 import logging
 import copy
 
@@ -7,6 +9,7 @@ class TreeManager:
         self._current = None
         self._clipboard = None
         self.trees = []
+        self.global_schedule = Schedule(ReferencedDescriptor(TreeManager.global_schedule_list, self), self.sync_cursors)
 
     @property
     def clipboard(self):
@@ -30,13 +33,38 @@ class TreeManager:
             tree.manager = self
         self._current = tree
 
+    @property
+    def global_schedule_list(self):
+        gsl = []
+        for tree in self.trees:
+            gsl += tree.schedule_list
+
+        gsl.sort(key=lambda t: t.sort_date)
+
+        return gsl
+
+    @property
+    def schedule_in_use(self):
+        if Config.get("behaviour.global_schedule"):
+            return self.global_schedule
+        else:
+            return self.current.schedule
+
+    def sync_cursors(self):
+        if Config.get("behaviour.global_schedule"):
+            for tree in self.trees:
+                if self.global_schedule.cursor in tree.display_list:
+                    self.current = tree
+                    self.current.cursor = self.global_schedule.cursor
+                    break
+
     def next_tree(self):
         index = self.trees.index(self.current)
         index += 1 - len(self.trees)
         self.current = self.trees[index]
 
     def prev_tree(self):
-        index = self.tree.index(self.current)
+        index = self.trees.index(self.current)
         index -= 1
         self.current = self.trees[index]
     

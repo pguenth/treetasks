@@ -14,7 +14,6 @@ class Scroller:
 
     def get_display_list(self, cursor, current_list):
         if cursor is None:
-            logging.debug("C is None")
             self.cursor = cursor
             self.display_list = current_list[:self.viewport_height]
             self.list = current_list
@@ -22,12 +21,8 @@ class Scroller:
             return self.display_list
 
         assert cursor in current_list
+        assert self.cursor in self.list
 
-        logging.debug("gdl")
-        logging.debug(self.list)
-        logging.debug(self.cursor)
-        logging.debug(current_list)
-        logging.debug(cursor)
         index_new = current_list.index(cursor)
         index_old = self.list.index(self.cursor)
         cursor_line_old = self.display_list.index(self.cursor)
@@ -43,7 +38,7 @@ class Scroller:
             cursor_line_new = cursor_line_new + delta# + 1
 
         start = index_new - cursor_line_new 
-        self.list = current_list
+        self.list = current_list[:]
         self.cursor = cursor
         self.display_list = current_list[start:][:h]
 
