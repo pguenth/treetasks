@@ -8,26 +8,27 @@ class Config:
                 'tasks_columns' : 100,
                 'indent': 4,
                 'columns' : 'csd',
-                'col_scheduled_min' : 10,
+                'col_scheduled_min' : 5,
                 'col_scheduled_max' : 10,
                 'col_scheduled_ratio' : 0.08,
-                'col_due_min' : 10,
+                'col_due_min' : 5,
                 'col_due_max' : 10,
                 'col_due_ratio' : 0.08,
                 'col_category_min' : 4,
                 'col_category_max' : 16,
                 'col_category_ratio' : 0.15,
-                'schedule_show' : False,
+                'schedule_show' : True,
                 'schedule_min' : 10,
                 'schedule_max' : 40,
                 'schedule_ratio' : 0.2,
-                'description_show' : False,
+                'description_show' : True,
                 'description_min' : 6,
                 'description_max' : 20,
                 'description_ratio' : 0.2,
                 'indent_guide' : "⁝",
                 'columns_max_total_ratio' : 0.3,
-                'columns_border' : True
+                'columns_border' : True,
+                'tab_width' : 16
             },
             'keys' : {
                 'down' : 'j',
@@ -100,8 +101,11 @@ class Config:
                 'copy_cursor' : 'y',
 
                 'save' : 'S',
-                'quit' : 'q',
-                'quit_nosave' : 'Q'
+                'close_tab' : 'q',
+                'quit' : 'Q',
+                'previous_tab' : 'T',
+                'next_tab' : '\t',
+                'new_tab' : 't'
                 
             },
             'behaviour' : {
@@ -114,7 +118,7 @@ class Config:
                 'follow_schedule' : True,
                 'filter_categories_schedule' : False,
                 'auto_move_up' : True,
-                'roundtrip' : False
+                'roundtrip' : False,
             }
     }
 

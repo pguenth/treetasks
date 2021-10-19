@@ -4,6 +4,7 @@ from datetime import date
 import xml.etree.ElementTree as ET
 from .config import Config
 from .node import LinkedListNodeMixin, AnyLinkedListNode
+from .scroller import Scroller
 import logging
 import datetime
 
@@ -344,10 +345,12 @@ class TaskTreeParserXML:
 class TaskTreeParserJSON:
     @staticmethod 
     def load(path, root_node):
+        print("Loading json file", path)
         pass
 
     @staticmethod
     def save(path, root_node):
+        print("saving json file", path)
         pass
 
 
@@ -366,12 +369,20 @@ class AnyTaskTreeAwareNode(AnyLinkedListNode):
         self.tasktree = tasktree
 
 class TaskTree:
-    def __init__(self, path, manager, parser=TaskTreeParserXML):
+    def __init__(self, path, manager, parser=TaskTreeParserXML, name=None):
         self.path = path
+
+        if name is None:
+            name = path
+
+        self.name = name
         self.root = AnyTaskTreeAwareNode(self)
         self.parser = parser()
         self.cursor = None
         self.manager = manager
+
+        self.scroller_tree = Scroller(0, Config.get("behaviour.scrolloffset_tree"))
+        self.scroller_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
 
         self.sort_key = TaskTreeSortKey.NATURAL
         self.sort_reverse = False
@@ -380,7 +391,13 @@ class TaskTree:
         self.hidden_categories = set()
         self.show_only_categories = set() 
 
-        self.parser.load(self.path, self.root)
+        try:
+            open(self.path, mode='r')
+        except FileNotFoundError:
+            first_task = Task("empty", parent=self.root)
+        else:
+            self.parser.load(self.path, self.root)
+
         self.cursor = None if len(self.display_list) == 0 else self.display_list[0]
         self.cursor_sched = None if len(self.schedule_list) == 0 else self.schedule_list[0]
 

@@ -12,6 +12,7 @@ from .config import Config
 from .state import State
 from .tree import TaskState, TaskTreeSortKey
 from .geometry import *
+from .scroller import Scroller
 from .taskview import ListTask, DescriptionTask, ScheduleTask
 
 locale.setlocale(locale.LC_ALL, '')
@@ -19,7 +20,6 @@ lcode = locale.getpreferredencoding()
 
 os.environ.setdefault('ESCDELAY', '25')
 
-logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class Commands:
     @staticmethod
@@ -292,6 +292,27 @@ class Commands:
     def set_due_tomorrow():
         State.tm.current.cursor.due = date.today() + timedelta(days=1)
 
+    @staticmethod
+    def next_tab():
+        State.tm.next_tree()
+
+    @staticmethod
+    def prev_tab():
+        State.tm.prev_tree()
+
+    @staticmethod
+    def new_tab():
+        path = Window.get_input("Enter filename to open/create")
+        if path != "" and not path is None:
+            State.tm.open_tree(path)
+
+    @staticmethod
+    def close_tab():
+        if len(State.tm.trees) > 1:
+            State.tm.close_current_tree()
+        else:
+            Commands.quit()
+
 class CommandHandler:
     config_call = {
             'down' : Commands.down,
@@ -356,6 +377,10 @@ class CommandHandler:
             'sort_date_rev' : lambda : Commands.sort_date(True),
             'sort_date' : Commands.sort_date,
             'toggle_sort_tagged_below' : lambda : Commands.toggle_config("behaviour.sort_tagged_below"),
+            'next_tab' : Commands.next_tab,
+            'previous_tab' : Commands.prev_tab,
+            'new_tab' : Commands.new_tab,
+            'close_tab' : Commands.close_tab,
     }
 
     def __init__(self):
@@ -394,49 +419,6 @@ class CommandHandler:
         else:
             self.keychain_scope = action
 
-class Scroller:
-    def __init__(self, viewport_height, scrolloffset):
-        self.viewport_height = viewport_height
-
-        if scrolloffset < 0:
-            scrolloffset = 0
-
-        self.scrolloffset = scrolloffset
-        self.list = [None]
-        self.cursor = None
-        self.display_list = [None]
-
-    def get_display_list(self, cursor, current_list):
-        if cursor is None:
-            self.cursor = cursor
-            self.display_list = current_list[:self.viewport_height]
-            self.list = current_list
-
-            return self.display_list
-
-        assert cursor in current_list
-
-        index_new = current_list.index(cursor)
-        index_old = self.list.index(self.cursor)
-        cursor_line_old = self.display_list.index(self.cursor)
-
-        h = self.viewport_height
-        cursor_line_new = cursor_line_old + index_new - index_old
-        cursor_line_new = max(self.scrolloffset, min(cursor_line_new, h - self.scrolloffset - 1))
-
-        if cursor_line_new >= index_new:
-            cursor_line_new = index_new
-        elif h - cursor_line_new >= len(current_list) - index_new and h < len(current_list):
-            delta = h - cursor_line_new - len(current_list) + index_new
-            cursor_line_new = cursor_line_new + delta# + 1
-
-        start = index_new - cursor_line_new 
-        self.list = current_list
-        self.cursor = cursor
-        self.display_list = current_list[start:][:h]
-
-        return self.display_list
-
 class DeepcopySafeCursesWindow:
     def __init__(self, cwindow):
         self.cwindow = cwindow
@@ -470,8 +452,10 @@ class Window:
 
         Window.scr = DeepcopySafeCursesWindow(stdscr)
         Window.command_handler = CommandHandler()
-        Window.scroller_tree = Scroller(0, Config.get("behaviour.scrolloffset_tree"))
-        Window.scroller_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
+        Window.scroller_tabbar = Scroller(0, 0)
+        Window.scroller_global_schedule = Scroller(0, Config.get("behaviour.scrolloffset_schedule"))
+        Window.cursor_global_schedule = None if len(State.tm.global_schedule_list) == 0 else State.tm.global_schedule_list[0]
+
         Window.draw()
         Window._break_loop = False
         while not Window._break_loop:
@@ -574,8 +558,8 @@ class Window:
         y = coords.ul.y
         h = coords.h
 
-        Window.scroller_tree.viewport_height = h
-        dl = Window.scroller_tree.get_display_list(
+        State.tm.current.scroller_tree.viewport_height = h
+        dl = State.tm.current.scroller_tree.get_display_list(
                 State.tm.current.cursor,
                 State.tm.current.display_list)
 
@@ -633,15 +617,36 @@ class Window:
         win.addstr(coords.tasks.br.y + 1, coords.tasks.br.x - l, filter_str, curses.A_DIM)
 
     @staticmethod
+    def draw_tabbar(win, x, w):
+        tab_width = Config.get("appearance.tab_width")
+        tab_count = int(w / tab_width)
+        Window.scroller_tabbar.viewport_height = tab_count
+        display_tabs = Window.scroller_tabbar.get_display_list(
+                State.tm.current, State.tm.trees)
+
+        for t in display_tabs:
+            if t == State.tm.current:
+                attr = curses.A_STANDOUT
+            else:
+                attr = curses.A_NORMAL
+            tab_name = t.name[-(tab_width - 2):]
+            win.addstr(0, x, "[{}]".format(tab_name), attr)
+            x += tab_width
+
+
+    @staticmethod
     def draw():
         Window.scr.erase()
         Window.scr.border()
-        Window.scr.addstr(0, 1, "TreeTasks - welcome!")
+
+        wintitle = "TreeTasks"
+        Window.scr.addstr(0, 1, wintitle, curses.A_BOLD)
         y, x = Window.scr.getmaxyx()
 
         wincoords = Window.calculate_coordinates()
 
         Window.scr.addstr(y - 1, 0, "-> " + State.message + " ")
+        Window.draw_tabbar(Window.scr, len(wintitle) + 2, x - 2 - len(wintitle))
         Window.draw_tasks(Window.scr, wincoords.tasks)
 
         if Config.get("appearance.schedule_show"):
