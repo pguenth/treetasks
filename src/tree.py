@@ -50,7 +50,10 @@ class Task(LinkedListNodeMixin):
 
     @categories.setter
     def categories(self, value):
-        self._fields['categories'] = list(value)
+        if value is None:
+            self._fields['categories'] = []
+        else:
+            self._fields['categories'] = list(value)
 
     def add_category(self, category):
         if not type(category) == str:
@@ -69,7 +72,10 @@ class Task(LinkedListNodeMixin):
 
     @priority.setter
     def priority(self, value):
-        self._fields['priority'] = int(value)
+        if value is None:
+            self._fields['priority'] = None
+        else:
+            self._fields['priority'] = int(value)
 
     @property
     def text(self):
@@ -112,6 +118,10 @@ class Task(LinkedListNodeMixin):
 
     @scheduled.setter
     def scheduled(self, value):
+        if value is None:
+            self._fields['scheduled'] = None
+            return
+
         if not type(value) == date:
             try:
                 value = date.fromisoformat(value)
@@ -126,6 +136,10 @@ class Task(LinkedListNodeMixin):
 
     @due.setter
     def due(self, value):
+        if value is None:
+            self._fields['due'] = None
+            return
+
         if not type(value) == date:
             try:
                 value = date.fromisoformat(value)
@@ -399,11 +413,11 @@ class Schedule:
         self.move_callback()
 
     def move_today(self):
-        while self.cursor.sort_date < date.today():
-            self.move_down()
-
         while self.cursor.sort_date > date.today():
             self.move_up()
+
+        while self.cursor.sort_date < date.today():
+            self.move_down()
 
         self.move_callback()
 
@@ -739,12 +753,18 @@ class TaskTree:
         self.paste(task=task, before=True, below=False)
         self.cursor = task
 
+    def _move_schedule_before_deleting(self):
+        if len(self.manager.schedule_in_use.list) == 1:
+            self.manager.schedule_in_use.cursor = None
+        else:
+            self.manager.schedule_in_use.move_up()
 
     def _move_before_deleting(self):
         if len(self.cursor.siblings) == 0:
             self.move_treeup()
         else:
             self.move_cursor_hierarchic_down()
+
 
     def _delete_or_cut(self, cut=False, task=None):
         if task is None:
@@ -755,6 +775,9 @@ class TaskTree:
 
         if task == self.cursor:
             self._move_before_deleting()
+
+        if task == self.manager.schedule_in_use.cursor:
+            self._move_schedule_before_deleting()
 
         task.parent = None
 

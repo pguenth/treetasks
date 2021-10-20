@@ -1,5 +1,8 @@
 import logging
 
+class CursorException(Exception):
+    pass
+
 class Scroller:
     def __init__(self, viewport_height, scrolloffset):
         self.viewport_height = viewport_height
@@ -20,12 +23,29 @@ class Scroller:
 
             return self.display_list
 
-        assert cursor in current_list
-        assert self.cursor in self.list
+#        if not cursor in current_list:
+#            raise CursorException("Cursor outside of list. Maybe it moved outside of it?")
+#
+#        assert cursor in current_list
 
-        index_new = current_list.index(cursor)
-        index_old = self.list.index(self.cursor)
-        cursor_line_old = self.display_list.index(self.cursor)
+        if not cursor in current_list:
+            logging.warning("Cursor not in current list.")
+
+            self.cursor = None
+            self.display_list = current_list[:self.viewport_height]
+            self.list = current_list
+
+            return self.display_list
+        else:
+            index_new = current_list.index(cursor)
+
+        if self.cursor is None:
+            index_old = 0
+            cursor_line_old = 0
+        else:
+            assert self.cursor in self.list
+            index_old = self.list.index(self.cursor)
+            cursor_line_old = self.display_list.index(self.cursor)
 
         h = self.viewport_height
         cursor_line_new = cursor_line_old + index_new - index_old

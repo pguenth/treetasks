@@ -257,8 +257,8 @@
     \X=0\unit
     \longfkeyd (2\base) {Caps Lock}{ }
     \keyd           A{new child (bottom)},a{edit text}
-    \keyd           S{save},s{sort\note{2}}
-    \keyd          D{delete},d{cut}
+    \keyd           S{save},s{sort\note{3}}
+    \keyd          D{delete\note{2}},d{cut}
     \keyd           F{toggle sort tagged below},f{toggle collapse}
     \keyd          G{toggle show done},g{toggle done}
     \keyd          H{move selected task to parent level},h{move to parent}
@@ -275,7 +275,7 @@
     \longfkeyd      (2\base + 2\sep) {Shift}{}
     \keyd           Z{show all categories},z{show only categories}
     \keydd          {\textasciicircum X}{abort editing},X{unhide categories},x{hide categories}
-    \keyd          C{replace title},c{edit properties\note{3}}
+    \keyd          C{replace title},c{edit properties\note{4}}
     \keyd           V{toggle show cancelled},v{toggle cancelled}
     \keyd          B{},b{}
     \keyd          N{today\\(schedule)},n{down\\(schedule)}
@@ -321,16 +321,19 @@
     }
 }
 \def\blockB{
-    \makeblock{6cm}{Cut/Delete \note{2}}{
-        Keychains for cutting/deleting:
+    \makeblock{6cm}{Delete/Reset fields \note{2}}{
+        Keychains for deleting tasks and resetting fields:
         \begin{itemize}
-            \item \shortcut{dd} Cut cursor
-            \item \shortcut{dD} Delete cursor (to keep clipboard)
+            \item \shortcut{DD} Delete cursor (to keep clipboard)
+            \item \shortcut{DC} Reset category 
+            \item \shortcut{DP} Reset priority
+            \item \shortcut{DR} Reset due date
+            \item \shortcut{DE} Reset scheduled date
         \end {itemize}
    }
 }
 \def\blockC{
-    \makeblock{6cm}{Sort \note{2}}{
+    \makeblock{6cm}{Sort \note{3}}{
         Keychains for reordering the tree.
         The "natural" order defined by moving around tasks is always saved.
         Replace the second letter of the keychain by its corresponding capital to order in reverse.
@@ -346,7 +349,7 @@
     }
 }
 \def\blockD{
-    \makeblock{6cm}{Edit \note{3}}{
+    \makeblock{6cm}{Edit \note{4}}{
         Keychains for editing tasks.
         \begin{itemize}
             \item \shortcut{cp} Edit priority
@@ -403,7 +406,7 @@
 
 \vspace{+2ex}
 \scriptsize
-\Shortunderstack{ {\protect\blockA}  }
+\Shortunderstack{ {\protect\blockA} {\protect\blockB} }
 \Shortunderstack{ {\protect\blockC}  }
 \Shortunderstack{ {\protect\blockD}  }
 \Shortunderstack{ {\protect\blockE}  }

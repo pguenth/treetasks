@@ -40,6 +40,26 @@ def task_modification(func):
 class Commands:
     @staticmethod
     @task_modification
+    def reset_scheduled():
+        State.tm.current.cursor.scheduled = None
+        
+    @staticmethod
+    @task_modification
+    def reset_priority():
+        State.tm.current.cursor.priority = None
+
+    @staticmethod
+    @task_modification
+    def reset_due():
+        State.tm.current.cursor.due = None
+
+    @staticmethod
+    @task_modification
+    def reset_categories():
+        State.tm.current.cursor.categories = None
+
+    @staticmethod
+    @task_modification
     def edit_scheduled():
         State.tm.current.cursor.listview.scheduled.edit(Window)
         
@@ -389,6 +409,10 @@ class CommandHandler:
             'edit_due' : Commands.edit_due,
             'edit_priority' : Commands.edit_priority,
             'edit_categories' : Commands.edit_categories,
+            'reset_scheduled' : Commands.reset_scheduled,
+            'reset_due' : Commands.reset_due,
+            'reset_priority' : Commands.reset_priority,
+            'reset_categories' : Commands.reset_categories,
             'toggle_done' : Commands.toggle_done,
             'toggle_show_done' : Commands.toggle_show_done,
             'toggle_cancelled' : Commands.toggle_cancelled,
