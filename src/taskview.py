@@ -290,7 +290,12 @@ class ListTask(TaskView):
             )
         self.priority.attr = attr
         
-        if self.task.state == TaskState.DONE:
+        if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_state"):
+            import ext.timewarrior as timewarrior
+            
+            if timewarrior.is_tracking_task(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True):
+                self.window.addstr(self.y, x + 2, "R", curses.color_pair(2))
+        elif self.task.state == TaskState.DONE:
             s = "d"
             self.window.addstr(self.y, x + 2, "d", attr)
         elif self.task.state == TaskState.CANCELLED:
@@ -322,6 +327,16 @@ class ListTask(TaskView):
         self._readd_columns()
         self._replace_columns()
 
+def strf_timedelta(td):
+    s = td.seconds
+    d = td.days
+    h = int(s / 3600)
+    s -= h * 3600
+    m = int(s / 60)
+    s -= m * 60
+    string = "{}d{:02d}h{:02d}m{:02d}s".format(d, h, m, s)
+    return string
+
 class DescriptionTask(TaskView):
     def __init__(self, task, geometry, window):
         super().__init__(task, geometry, window)
@@ -352,6 +367,12 @@ class DescriptionTask(TaskView):
         self.priority.place(x + 1, y, self.window, 1)
         self.categories.place(x + self.width - cat_len - 1, y, self.window)
         self.text.place(x + 1, y + 2, self.window, self.width - 2, maxlines=self.height - 2)
+
+        if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_state"):
+            import ext.timewarrior as timewarrior
+            duration = timewarrior.get_duration(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True)
+            duration_str = strf_timedelta(duration)
+            self.window.addstr(y, x + self.width - cat_len - 2 - len(duration_str), duration_str)
 
         t_scheduled = "Scheduled"
         t_due = "Due"

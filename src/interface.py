@@ -20,33 +20,56 @@ lcode = locale.getpreferredencoding()
 
 os.environ.setdefault('ESCDELAY', '25')
 
+def task_modification(func):
+    def run_recursive(func, it):
+        try:
+            new = next(it)
+            old = copy.deepcopy(new)
+            run_recursive(func, it)
+        except StopIteration:
+            func()
+        else:
+            Config.modify_hook(old, new)
+        
+    def f():
+        it = PreOrderIter(State.tm.current.cursor)
+        run_recursive(func, it)
+
+    return f
 
 class Commands:
     @staticmethod
+    @task_modification
     def edit_scheduled():
         State.tm.current.cursor.listview.scheduled.edit(Window)
         
     @staticmethod
+    @task_modification
     def edit_priority():
         State.tm.current.cursor.listview.priority.edit(Window, replace=True)
 
     @staticmethod
+    @task_modification
     def edit_due():
         State.tm.current.cursor.listview.due.edit(Window)
 
     @staticmethod
+    @task_modification
     def edit_categories():
         State.tm.current.cursor.listview.categories.edit(Window)
 
     @staticmethod
+    @task_modification
     def edit_title():
         State.tm.current.cursor.listview.title.edit(Window)
 
     @staticmethod
+    @task_modification
     def replace_title():
         State.tm.current.cursor.listview.title.edit(Window)
 
     @staticmethod
+    @task_modification
     def edit_text():
         State.tm.current.cursor.descriptionview.text.edit(Window)
 
@@ -180,6 +203,7 @@ class Commands:
         State.tm.current.cursor.toggle_collapse()
 
     @staticmethod
+    @task_modification
     def toggle_done():
         c = State.tm.current.cursor
         if not Config.get("behaviour.show_done"):
@@ -188,6 +212,7 @@ class Commands:
         c.toggle_done()
 
     @staticmethod
+    @task_modification
     def toggle_cancelled():
         c = State.tm.current.cursor
         if not Config.get("behaviour.show_cancelled"):
@@ -288,18 +313,22 @@ class Commands:
         State.tm.current.move_selected_task_treeup()
 
     @staticmethod
+    @task_modification
     def set_scheduled_today():
         State.tm.current.cursor.scheduled = date.today()
 
     @staticmethod
+    @task_modification
     def set_scheduled_tomorrow():
         State.tm.current.cursor.scheduled = date.today() + timedelta(days=1)
 
     @staticmethod
+    @task_modification
     def set_due_today():
         State.tm.current.cursor.due = date.today() 
 
     @staticmethod
+    @task_modification
     def set_due_tomorrow():
         State.tm.current.cursor.due = date.today() + timedelta(days=1)
 
@@ -323,6 +352,28 @@ class Commands:
             State.tm.close_current_tree()
         else:
             Commands.quit()
+
+    @staticmethod
+    def timewarrior_start():
+        if Config.get("plugins.timewarrior"):
+            import ext.timewarrior as timewarrior
+            msg = timewarrior.start_task(State.tm.current.cursor, Config.get("plugins.timewarrior_parents_as_tags"))
+            if msg is None:
+                msg = ""
+            if msg != "":
+                msg = ": \"" + msg.replace("\n", " ") + "\""
+            State.message = "started task" + msg
+
+    @staticmethod
+    def timewarrior_stop():
+        if Config.get("plugins.timewarrior"):
+            import ext.timewarrior as timewarrior
+            msg = timewarrior.stop()
+            if msg is None:
+                msg = ""
+            if msg != "":
+                msg = ": \"" + msg.replace("\n", " ") + "\""
+            State.message = "stopped task" + msg
 
 class CommandHandler:
     config_call = {
@@ -394,7 +445,9 @@ class CommandHandler:
             'new_tab' : Commands.new_tab,
             'close_tab' : Commands.close_tab,
             'toggle_global_schedule' : lambda : Commands.toggle_config("behaviour.global_schedule"),
-            'toggle_movement' : lambda : Commands.toggle_config("behaviour.primary_movement_hierarchic")
+            'toggle_movement' : lambda : Commands.toggle_config("behaviour.primary_movement_hierarchic"),
+            'timewarrior_start' : Commands.timewarrior_start,
+            'timewarrior_stop' : Commands.timewarrior_stop
     }
 
     def __init__(self):
@@ -570,7 +623,7 @@ class Window:
         y = coords.ul.y
         h = coords.h
 
-        State.tm.current.scroller_tree.viewport_height = h
+        State.tm.current.scroller_tree.viewport_height = h - 1
         dl = State.tm.current.scroller_tree.get_display_list(
                 State.tm.current.cursor,
                 State.tm.current.display_list)

@@ -108,8 +108,10 @@ class Config:
                 'quit' : 'Q',
                 'previous_tab' : 'T',
                 'next_tab' : '\t',
-                'new_tab' : 't'
-                
+                'new_tab' : 't',
+
+                'timewarrior_start' : 'w',
+                'timewarrior_stop' : 'W'
             },
             'behaviour' : {
                 'scrolloffset_tree' : 2,
@@ -121,10 +123,17 @@ class Config:
                 'filter_categories_schedule' : False,
                 'follow_schedule' : True,
                 'auto_move_up' : True,
-                'roundtrip' : False,
-                'global_schedule' : False,
-                'primary_movement_hierarchic' : True
+                'roundtrip' : True,
+                'global_schedule' : True,
+                'primary_movement_hierarchic' : True,
+            },
+            'plugins' : {
+                'timewarrior' : False,
+                'timewarrior_propagate_modifications' : True,
+                'timewarrior_parents_as_tags' : True,
+                'timewarrior_show_state' : False
             }
+
     }
 
 
@@ -174,3 +183,9 @@ class Config:
         if not section in Config._config:
             raise KeyError("Given section not existing")
         return Config._config[section]
+
+    @staticmethod
+    def modify_hook(task_old, task_new):
+        if Config.get('plugins.timewarrior') and Config.get('plugins.timewarrior_propagate_modifications'):
+            import ext.timewarrior as timewarrior
+            timewarrior.modify_hook(task_old, task_new)
