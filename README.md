@@ -56,6 +56,24 @@ The schedule has its own independent cursor which is controlled by `n` and `m` b
 * `behaviour.global_schedule`: If set to `True`, the schedule is generated from all tasks from all open tabs. If set to `False`, every tab has its own schedule. If a global schedule is used, a + sign denotes tasks that are not in the currently shown tab. If the cursor follows the schedule cursor, tabs are automatically switched, too. Default: `True`.
 
 
+### Timewarrior
+
+Treetasks has rudimentary support for [timewarrior](https://timewarrior.net/) which is activated by setting `plugins.timewarrior` to `True`.
+Using `w` treetasks calls timewarrior to start tracking the currently highlighted task.
+In detail treetasks collects the titles of the selected task and its categories and uses them as tags for timewarrior.
+If `plugins.timewarrior_parents_as_tags` is set (which is the default and maybe the most sensible way to use treetasks with timewarrior) the titles and categories of all parents are also appended to the list of tags recursively.
+This makes sense since work on *child_task* should also be shown if work on *parent_task* is considered.
+Treetasks categories are implicitly used on children as well, for example if the category of *parent_task* is hidden *child_task* will not be shown, too.
+If `plugins.timewarrior_propagate_modifications` is set to `True` editing the task's title or category will also edit those information in timewarrior to keep things in sync.
+This is a bit experimental and may produce unwanted results in timewarrior.
+
+If `plugins.timewarrior_show_state` is set to `True` treetasks
+* highlights the task that is currently tracking in timewarrior and its parents by adding a green `R`
+* shows the time spent on the task and its children in the description area.
+
+These features are deactivated by default, because it results in loads of subprocess calls to timewarrior at the moment since at every cursor movement the task tree and task description are redrawn and therefore treetasks queries timewarrior for every task to see if it is active.
+Maybe a better solution is implemented in the future. 
+If you have an easy-to-implement idea how to implement this feature with less subprocess calls please do get in touch.
 
 
 
