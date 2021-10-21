@@ -3,7 +3,7 @@
 from src.config import Config
 from src.interface import Window
 from src.state import State
-from src.tree import TaskTreeParserXML, TaskTreeParserJSON, convert_parser
+from src.treeparser import TaskTreeParserXML, TaskTreeParserJSON, convert_parser
 from curses import wrapper
 import os.path
 import sys
@@ -75,10 +75,7 @@ def action_normal(args):
             else:
                 name = None
 
-            if treefile[-3:] == "xml":
-                State.tm.open_tree(treefile, parser=TaskTreeParserXML, name=name)
-            elif treefile[-4:] == "json":
-                State.tm.open_tree(treefile, parser=TaskTreeParserJSON, name=name)
+            State.tm.open_tree(treefile)
 
         Window.main(stdscr)
 

@@ -1,6 +1,7 @@
-from .tree import TaskTree, TaskTreeSortKey, TaskTreeParserXML, Schedule
+from .tree import TaskTree, TaskTreeSortKey, Schedule
 from .referenced import ReferencedDescriptor
 from .config import Config
+from .treeparser import TaskTreeParserAuto
 import logging
 import copy
 
@@ -72,7 +73,7 @@ class TreeManager:
         index -= 1
         self.current = self.trees[index]
     
-    def open_tree(self, path, set_current=True, parser=TaskTreeParserXML, name=None):
+    def open_tree(self, path, set_current=True, parser=TaskTreeParserAuto, name=None):
         if name is None:
             name = path
 
