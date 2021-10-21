@@ -36,6 +36,10 @@ class Task(LinkedListNodeMixin):
                 self.title, self.state, self.priority, self.due, self.scheduled,
                 'not ' if self.collapsed is False else '', self.categories, self.text)
 
+    def _modification_hook(self):
+        if isinstance(self.root, AnyTaskTreeAwareNode):
+            self.root.tasktree.outdate_display_list()
+
     @property
     def title(self):
         return self._title
@@ -43,6 +47,7 @@ class Task(LinkedListNodeMixin):
     @title.setter
     def title(self, value):
         self._title = value
+        self._modification_hook()
 
     @property
     def categories(self):
@@ -54,6 +59,7 @@ class Task(LinkedListNodeMixin):
             self._fields['categories'] = []
         else:
             self._fields['categories'] = list(value)
+        self._modification_hook()
 
     def add_category(self, category):
         if not type(category) == str:
@@ -61,10 +67,12 @@ class Task(LinkedListNodeMixin):
 
         if not category in self.categories: 
             self._fields['categories'].append(category)
+        self._modification_hook()
 
     def remove_category(self, category):
         if category in self.categories:
             self._fields['categories'].remove(category)
+        self._modification_hook()
 
     @property
     def priority(self):
@@ -76,6 +84,7 @@ class Task(LinkedListNodeMixin):
             self._fields['priority'] = None
         else:
             self._fields['priority'] = int(value)
+        self._modification_hook()
 
     @property
     def text(self):
@@ -84,6 +93,7 @@ class Task(LinkedListNodeMixin):
     @text.setter
     def text(self, value):
         self._fields['text'] = str(value)
+        self._modification_hook()
 
     @property
     def state(self):
@@ -95,6 +105,7 @@ class Task(LinkedListNodeMixin):
             raise ValueError("State not of enum class type TaskState")
 
         self._fields['state'] = value
+        self._modification_hook()
 
     def toggle_done(self):
         if self.state == TaskState.PENDING:
@@ -129,6 +140,7 @@ class Task(LinkedListNodeMixin):
                 raise ValueError("Date not given as isoformat string")
         
         self._fields['scheduled'] = value
+        self._modification_hook()
 
     @property
     def due(self):
@@ -147,6 +159,7 @@ class Task(LinkedListNodeMixin):
                 raise ValueError("Date not given as isoformat string")
         
         self._fields['due'] = value
+        self._modification_hook()
 
     @property
     def sort_date(self):
@@ -168,6 +181,7 @@ class Task(LinkedListNodeMixin):
             raise ValueError("Collapsed must be set to a boolean value")
 
         self._fields['collapsed'] = value
+        self._modification_hook()
 
     def toggle_collapse(self):
         self.collapsed = not self.collapsed
@@ -467,6 +481,8 @@ class TaskTree:
             self.parser.load(self.path, self.root)
 
         self.cursor = None if len(self.display_list) == 0 else self.display_list[0]
+        self._display_list_outdated = True
+        self._display_list_cache = None
 
     @property
     def cursor(self):
@@ -481,9 +497,29 @@ class TaskTree:
     @cursor.setter
     def cursor(self, cursor):
         self._cursor = cursor
-            
+
     @property
-    def display_list(self):
+    def sort_reverse(self):
+        return self._sort_reverse
+
+    @sort_reverse.setter
+    def sort_reverse(self, value):
+        self._sort_reverse = value
+        self.outdate_display_list()
+
+    @property
+    def sort_key(self):
+        return self._sort_key
+
+    @sort_key.setter
+    def sort_key(self, value):
+        self._sort_key = value
+        self.outdate_display_list()
+
+    def outdate_display_list(self):
+        self._display_list_outdated = True
+
+    def _regen_display_list(self):
         self.update_order()
 
         def filt(task):
@@ -493,7 +529,17 @@ class TaskTree:
                 return False
 
         tasks = list(PreOrderIter(self.root, filt))
-        return tasks
+
+        self._display_list_cache = tasks
+        self._display_list_outdated = False
+            
+    @property
+    def display_list(self):
+        if self._display_list_outdated or self._display_list_cache is None:
+            self._regen_display_list()
+
+        return self._display_list_cache
+
 
     @property
     def schedule_list(self):
@@ -510,12 +556,15 @@ class TaskTree:
 
     def hide_categories(self, categories):
         self.hidden_categories |= set(categories)
+        self.outdate_display_list()
 
     def unhide_categories(self, categories):
         self.hidden_categories -= set(categories)
+        self.outdate_display_list()
 
     def unhide_all_categories(self):
         self.hidden_categories = set()
+        self.outdate_display_list()
 
     @property
     def show_only_categories(self):
@@ -524,6 +573,7 @@ class TaskTree:
     @show_only_categories.setter
     def show_only_categories(self, categories):
         self._show_only_categories = set(categories)
+        self.outdate_display_list()
 
     def _sort(self, key):
         self.root.sort_tree(key=key, reverse=self.sort_reverse)
@@ -557,12 +607,9 @@ class TaskTree:
             self._sort(lambda t: t.priority if not t.priority is None else 10)
         elif self.sort_key == TaskTreeSortKey.DATE:
             def k(t):
-                if t.scheduled is None:
-                    return t.due if not t.due is None else datetime.date(2100,1,1)
-                if t.due is None:
-                    return t.scheduled
+                sort_date = t.sort_date
+                return sort_date if not sort_date is None else datetime.date(2100, 1, 1)
 
-                return min(t.due, t.scheduled)
             self._sort(k)
 
     def set_order(self, key, reverse=False):
@@ -589,52 +636,61 @@ class TaskTree:
 
         # roundtrip
         if index_new >= len(tasks):
-            index_new -= len(tasks)
+            if Config.get("behaviour.roundtrip"):
+                index_new -= len(tasks)
+            else:
+                index_new = len(tasks) - 1
         elif index_new < 0:
-            index_new += len(tasks)
+            if Config.get("behaviour.roundtrip"):
+                index_new += len(tasks)
+            else:
+                index_new = 0
+
         self.cursor = tasks[index_new]
 
-    def move_cursor_hierarchic_up(self):
-        parentchildren = [c for c in self.cursor.parent.children if c.show]
-        if len(parentchildren) == 1 or parentchildren.index(self.cursor) == 0:
+    def _move_cursor_hierarchic(self, up=True):
+        displayed_children = [t for t in self.display_list
+                                if t in self.cursor.parent.children]
+
+        cursor_index = displayed_children.index(self.cursor)
+        end_index = 0 if up else len(displayed_children) - 1
+        logging.error("newmove")
+
+        if len(displayed_children) == 1 or cursor_index == end_index:
             if     (isinstance(self.cursor.parent, AnyNode) and
                     Config.get("behaviour.roundtrip")):
-                self.cursor = parentchildren[-1]
+                # roundtrip in root level
+                self.cursor = displayed_children[-1 if up else 0]
             elif   (not isinstance(self.cursor.parent, AnyNode) and
                     Config.get("behaviour.auto_move_up")):
+                # auto move up
                 self.move_treeup()
+                if not up:
+                    self._move_cursor_hierarchic(False)
             elif Config.get("behaviour.roundtrip"):
                 # roundtrip in children
-                self.cursor = parentchildren[-1]
+                self.cursor = displayed_children[-1 if up else 0]
 
         else:
-            self.cursor = parentchildren[parentchildren.index(self.cursor) - 1]
+            # normal movement
+            delta = -1 if up else 1
+            self.cursor = displayed_children[cursor_index + delta]
+
+    def move_cursor_hierarchic_up(self):
+        self._move_cursor_hierarchic(True)
 
     def move_cursor_hierarchic_down(self):
-        parentchildren = [c for c in self.cursor.parent.children if c.show]
-        if len(parentchildren) == 1 or parentchildren.index(self.cursor) == len(parentchildren) - 1:
-            if     (isinstance(self.cursor.parent, AnyNode) and
-                    Config.get("behaviour.roundtrip")):
-                self.cursor = parentchildren[0]
-            elif   (not isinstance(self.cursor.parent, AnyNode) and
-                    Config.get("behaviour.auto_move_up")):
-                self.move_treeup()
-                self.move_cursor_hierarchic_down()
-            elif Config.get("behaviour.roundtrip"):
-                # roundtrip in children
-                self.cursor = parentchildren[0]
-        else:
-            self.cursor = parentchildren[parentchildren.index(self.cursor) + 1]
+        self._move_cursor_hierarchic(False)
 
     def move_cursor_hierarchic(self, delta):
         tasks = self.display_list
 
         while delta > 0:
-            self.move_cursor_hierarchic_down()
+            self._move_cursor_hierarchic(False)
             delta -= 1
 
         while delta < 0:
-            self.move_cursor_hierarchic_up()
+            self._move_cursor_hierarchic(True)
             delta += 1
 
     def move_treeup(self):
@@ -669,6 +725,7 @@ class TaskTree:
             parent.first_link_child.insert_before(ntask)
 
         self.cursor = ntask
+        self.outdate_display_list()
         return ntask
 
     def _new_task_child_bottom(self, parent):
@@ -680,6 +737,7 @@ class TaskTree:
             parent.last_link_child.insert_after(ntask)
 
         self.cursor = ntask
+        self.outdate_display_list()
         return ntask
 
     def new_task_child_top(self):
@@ -698,12 +756,14 @@ class TaskTree:
         ntask = Task("", parent=self.cursor.parent)
         self.cursor.insert_before(ntask)
         self.cursor = ntask
+        self.outdate_display_list()
         return ntask
 
     def new_task_sibling_below(self):
         ntask = Task("", parent=self.cursor.parent)
         self.cursor.insert_after(ntask)
         self.cursor = ntask
+        self.outdate_display_list()
         return ntask
 
     def new_task_top(self):
@@ -786,6 +846,8 @@ class TaskTree:
         else:
             del task
 
+        self.outdate_display_list()
+
     def delete(self, task=None):
         self._delete_or_cut(cut=False, task=task)
 
@@ -807,6 +869,8 @@ class TaskTree:
             self.cursor.insert_as_last_child(task)
         elif not below and not before:
             self.cursor.insert_after(task)
+        
+        self.outdate_display_list()
 
     #def insert_clipboard_after(self):
     #    if not self.manager.clipboard is None:

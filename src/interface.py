@@ -247,23 +247,22 @@ class Commands:
         else:
             Config.set(config_uri, True)
 
+        State.tm.outdate_display_lists()
+
     @staticmethod
     def toggle_show_done():
-        if Config.get("behaviour.show_done"):
-            while State.tm.current.cursor.done:
-                State.tm.current.move_cursor_hierarchic(-1)
-            Config.set("behaviour.show_done", False)
-        else:
-            Config.set("behaviour.show_done", True)
+        while State.tm.current.cursor.done:
+            State.tm.current.move_cursor_hierarchic(-1)
+
+        Commands.toggle_config("behaviour.show_done")
+
 
     @staticmethod
     def toggle_show_cancelled():
-        if Config.get("behaviour.show_cancelled"):
-            while State.tm.current.cursor.cancelled:
-                State.tm.current.move_cursor_hierarchic(-1)
-            Config.set("behaviour.show_cancelled", False)
-        else:
-            Config.set("behaviour.show_cancelled", True)
+        while State.tm.current.cursor.cancelled:
+            State.tm.current.move_cursor_hierarchic(-1)
+
+        Commands.toggle_config("behaviour.show_cancelled")
 
     @staticmethod
     def quit_nosave():

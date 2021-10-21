@@ -43,6 +43,10 @@ class TreeManager:
 
         return gsl
 
+    def outdate_display_lists(self):
+        for tree in self.trees:
+            tree.outdate_display_list()
+
     @property
     def schedule_in_use(self):
         if Config.get("behaviour.global_schedule"):
