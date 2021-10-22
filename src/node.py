@@ -1,4 +1,4 @@
-from anytree import NodeMixin, AnyNode
+from anytree import NodeMixin, AnyNode, TreeError
 import logging
 
 class OrderedNodeMixin(NodeMixin):
@@ -128,6 +128,7 @@ class LinkedListNodeMixin(NodeMixin):
 
     def sort_tree(self, key=None, reverse=False):
         self.sort_children(key=key, reverse=reverse)
+
         for child in self.children:
             child.sort_tree(key=key, reverse=reverse)
 
@@ -137,17 +138,19 @@ class LinkedListNodeMixin(NodeMixin):
     def move_forwards(self):
         self._link_next.insert_after(self)
 
-
-    # insert the given node before/after this node
-    def insert_before(self, node):
+    def _insert_prepare(self, node):
         if not isinstance(node, LinkedListNodeMixin):
             raise ValueError("Node is not of type OrderedNodeMixin")
 
         if self == node:
-            return
+            raise TreeError("Cannot insert self before or after itself")
 
         node.parent = self.parent
         node.remove_from_linked_list()
+
+    # insert the given node before/after this node
+    def insert_before(self, node):
+        self._insert_prepare(node)
 
         node._link_prev = self._link_prev
         if not self._link_prev is None:
@@ -156,14 +159,7 @@ class LinkedListNodeMixin(NodeMixin):
         node._link_next = self
 
     def insert_after(self, node):
-        if not isinstance(node, LinkedListNodeMixin):
-            raise ValueError("Node is not of type OrderedNodeMixin")
-
-        if self == node:
-            return
-
-        node.parent = self.parent
-        node.remove_from_linked_list()
+        self._insert_prepare(node)
 
         node._link_next = self._link_next
         if not self._link_next is None:
@@ -171,18 +167,21 @@ class LinkedListNodeMixin(NodeMixin):
         self._link_next = node
         node._link_prev = self
 
+    def insert(self, node, before=True):
+        if before:
+            self.insert_before(node)
+        else:
+            self.insert_after(node)
+
     # inserts this node before/after the given one
-    def insert_self_before(self, node):
+    def insert_self(self, node, before=True):
         if not isinstance(node, LinkedListNodeMixin):
             raise ValueError("Node is not of type OrderedNodeMixin")
 
-        node.insert_before(self)
-
-    def insert_self_after(self, node):
-        if not isinstance(node, LinkedListNodeMixin):
-            raise ValueError("Node is not of type OrderedNodeMixin")
-
-        node.insert_after(self)
+        if before:
+            node.insert_before(self)
+        else:
+            node.insert_after(self)
 
     @property
     def _link_next(self):
@@ -204,6 +203,9 @@ class LinkedListNodeMixin(NodeMixin):
 
     @_link_prev.setter
     def _link_prev(self, value):
+        if value == self:
+            logging.debug("setting link_prev of {} to itself, creating a loop".format(self.title))
+            raise TreeError("Setting a link loop")
         self.__link_prev = value
 
     @property
@@ -255,12 +257,18 @@ class LinkedListNodeMixin(NodeMixin):
         return self.children[0].last_link
 
     def insert_as_first_child(self, node):
+        if self == node:
+            raise TreeError("Cannot insert node as its own child")
+
         if self.first_link_child is None:
             node.parent = self
         else:
             self.first_link_child.insert_before(node)
 
     def insert_as_last_child(self, node):
+        if self == node:
+            raise TreeError("Cannot insert node as its own child")
+
         if self.last_link_child is None:
             node.parent = self
         else:
@@ -294,9 +302,9 @@ class LinkedListNodeMixin(NodeMixin):
         if self._block_hooks:
             return
 
-        self._link_prev = parent.last_link_child
         self._link_next = None
         if not parent.last_link_child is None:
+            self._link_prev = parent.last_link_child
             parent.last_link_child._link_next = self
             
 
@@ -305,3 +313,9 @@ class AnyOrderedNode(AnyNode, OrderedNodeMixin):
 
 class AnyLinkedListNode(AnyNode, LinkedListNodeMixin):
     pass
+
+class AnyTaskTreeAwareNode(AnyLinkedListNode):
+    def __init__(self, tasktree):
+        super().__init__()
+        self.tasktree = tasktree
+

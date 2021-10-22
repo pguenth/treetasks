@@ -120,6 +120,7 @@ class Config:
             'behaviour' : {
                 'scrolloffset_tree' : 2,
                 'scrolloffset_schedule' : 1,
+                'scrolloffset_tabbar' : 0,
                 'show_done' : True,
                 'show_cancelled' : False,
                 'autosave' : True,

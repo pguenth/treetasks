@@ -7,12 +7,11 @@ from datetime import date, timedelta
 
 from anytree import PreOrderIter, TreeError
 
-
 from .config import Config
 from .state import State
-from .tree import TaskState, TaskTreeSortKey
+from .tree import TaskTreeSortKey
+from .task import TaskState
 from .geometry import *
-from .scroller import Scroller
 from .taskview import ListTask, DescriptionTask, ScheduleTask
 
 locale.setlocale(locale.LC_ALL, '')
@@ -124,9 +123,9 @@ class Commands:
     @staticmethod
     def _movement(delta, primary):
         if Config.get("behaviour.primary_movement_hierarchic") ^ primary:
-            State.tm.current.move_cursor_flat(delta)
+            State.tm.current.view.move_flat(delta)
         else:
-            State.tm.current.move_cursor_hierarchic(delta)
+            State.tm.current.view.move_hierarchic(delta)
 
     @staticmethod
     def down():
@@ -195,26 +194,26 @@ class Commands:
 
     @staticmethod
     def new_task_above():
-        new_task = State.tm.current.new_task_sibling_above()
+        new_task = State.tm.current.new_task_sibling_before()
         Commands._new_task_edit(new_task)
 
     @staticmethod
     def new_task_below():
-        new_task = State.tm.current.new_task_sibling_below()
+        new_task = State.tm.current.new_task_sibling_after()
         if not Commands._new_task_edit(new_task):
             Commands.up()
 
     @staticmethod
     def left():
         try:
-            State.tm.current.move_treeup()
+            State.tm.current.view.move_treeup()
         except TreeError:
             pass
 
     @staticmethod
     def right():
         try:
-            State.tm.current.move_treedown()
+            State.tm.current.view.move_treedown()
         except TreeError:
             Commands.new_task_child_top()
 
@@ -227,7 +226,7 @@ class Commands:
     def toggle_done():
         c = State.tm.current.cursor
         if not Config.get("behaviour.show_done"):
-            State.tm.current.move_cursor_hierarchic(-1)
+            State.tm.current.view.move_hierarchic(-1)
 
         c.toggle_done()
 
@@ -236,7 +235,7 @@ class Commands:
     def toggle_cancelled():
         c = State.tm.current.cursor
         if not Config.get("behaviour.show_cancelled"):
-            State.tm.current.move_cursor_hierarchic(-1)
+            State.tm.current.view.move_hierarchic(-1)
 
         c.toggle_cancelled()
 
@@ -247,12 +246,12 @@ class Commands:
         else:
             Config.set(config_uri, True)
 
-        State.tm.outdate_display_lists()
+        State.tm.outdate_tree_lists()
 
     @staticmethod
     def toggle_show_done():
         while State.tm.current.cursor.done:
-            State.tm.current.move_cursor_hierarchic(-1)
+            State.tm.current.view.move_hierarchic(-1)
 
         Commands.toggle_config("behaviour.show_done")
 
@@ -260,7 +259,7 @@ class Commands:
     @staticmethod
     def toggle_show_cancelled():
         while State.tm.current.cursor.cancelled:
-            State.tm.current.move_cursor_hierarchic(-1)
+            State.tm.current.view.move_hierarchic(-1)
 
         Commands.toggle_config("behaviour.show_cancelled")
 
@@ -281,19 +280,19 @@ class Commands:
 
     @staticmethod
     def schedule_up():
-        State.tm.schedule_in_use.move_up()
+        State.tm.schedule.move_up()
 
     @staticmethod
     def schedule_down():
-        State.tm.schedule_in_use.move_down()
+        State.tm.schedule.move_down()
 
     @staticmethod
     def schedule_goto_today():
-        State.tm.schedule_in_use.move_today()
+        State.tm.schedule.move_today()
 
     @staticmethod
     def schedule_top():
-        State.tm.schedule_in_use.move_top()
+        State.tm.schedule.move_top()
 
     @staticmethod
     def hide_categories():
@@ -353,17 +352,17 @@ class Commands:
 
     @staticmethod
     def next_tab():
-        State.tm.next_tree()
+        State.tm.next_tab()
 
     @staticmethod
     def prev_tab():
-        State.tm.prev_tree()
+        State.tm.prev_tab()
 
     @staticmethod
     def new_tab():
         path = Window.get_input("Enter filename to open/create")
         if path != "" and not path is None:
-            State.tm.open_tree(path)
+            State.tm.open_tree(os.path.expanduser(path))
 
     @staticmethod
     def close_tab():
@@ -542,7 +541,6 @@ class Window:
 
         Window.scr = DeepcopySafeCursesWindow(stdscr)
         Window.command_handler = CommandHandler()
-        Window.scroller_tabbar = Scroller(0, 0)
 
         Window.draw()
         Window._break_loop = False
@@ -646,11 +644,8 @@ class Window:
         y = coords.ul.y
         h = coords.h
 
-        State.tm.current.scroller_tree.viewport_height = h - 1
-        dl = State.tm.current.scroller_tree.get_display_list(
-                State.tm.current.cursor,
-                State.tm.current.display_list)
-
+        State.tm.current.viewport_height = h - 1
+        dl = State.tm.current.view.display_list
         Window.draw_tasks_decoration(win, x, y, coords.w - 1, h)
         y += 1
 
@@ -681,8 +676,8 @@ class Window:
 
         max_tasks = int((h - 2) / 3)
 
-        State.tm.schedule_in_use.scroller.viewport_height = max_tasks
-        dl = State.tm.schedule_in_use.display_list
+        State.tm.schedule.viewport_height = max_tasks
+        dl = State.tm.schedule.display_list
 
         for i, task in enumerate(dl):
             ScheduleTask(task, RectCoordinates(x, y + i * 3, coords.br.x, y + i * 3 + 3), win)
@@ -706,9 +701,8 @@ class Window:
     def draw_tabbar(win, x, w):
         tab_width = Config.get("appearance.tab_width")
         tab_count = int(w / tab_width)
-        Window.scroller_tabbar.viewport_height = tab_count
-        display_tabs = Window.scroller_tabbar.get_display_list(
-                State.tm.current, State.tm.trees)
+        State.tm.tabs.viewport_height = tab_count
+        display_tabs = State.tm.tabs.display_list 
 
         for t in display_tabs:
             if t == State.tm.current:

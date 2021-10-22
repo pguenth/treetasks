@@ -1,4 +1,5 @@
-from .tree import TaskTree, TaskTreeSortKey, Schedule
+from .tree import TaskTree, TaskTreeSortKey
+from .cursor import ScheduleCursor, TabbarCursor
 from .referenced import ReferencedDescriptor
 from .config import Config
 from .treeparser import TaskTreeParserAuto
@@ -7,10 +8,21 @@ import copy
 
 class TreeManager:
     def __init__(self):
-        self._current = None
         self._clipboard = None
-        self.trees = []
-        self.global_schedule = Schedule(ReferencedDescriptor(TreeManager.global_schedule_list, self), self.sync_cursors)
+        self.global_schedule = ScheduleCursor(ReferencedDescriptor(TreeManager.global_schedule_list, self), self.sync_cursors)
+        self.tabs = TabbarCursor(ReferencedDescriptor(TreeManager.trees, self))
+
+    @property
+    def trees(self):
+        try:
+            return self._trees
+        except AttributeError:
+            self._trees = []
+            return self._trees
+
+    #@trees.setter
+    #def trees(self, value):
+        #self._trees = value
 
     @property
     def clipboard(self):
@@ -25,14 +37,14 @@ class TreeManager:
 
     @property
     def current(self):
-        return self._current
+        return self.tabs.cursor
 
     @current.setter
     def current(self, tree):
         if not tree in self.trees:
             self.trees.append(tree)
             tree.manager = self
-        self._current = tree
+        self.tabs.cursor = tree
 
     @property
     def global_schedule_list(self):
@@ -44,12 +56,12 @@ class TreeManager:
 
         return gsl
 
-    def outdate_display_lists(self):
+    def outdate_tree_lists(self):
         for tree in self.trees:
-            tree.outdate_display_list()
+            tree.outdate_tree_list()
 
     @property
-    def schedule_in_use(self):
+    def schedule(self):
         if Config.get("behaviour.global_schedule"):
             return self.global_schedule
         else:
@@ -58,21 +70,17 @@ class TreeManager:
     def sync_cursors(self):
         if Config.get("behaviour.global_schedule"):
             for tree in self.trees:
-                if self.global_schedule.cursor in tree.display_list:
+                if self.global_schedule.cursor in tree.tree_list:
                     self.current = tree
                     self.current.cursor = self.global_schedule.cursor
                     break
 
-    def next_tree(self):
-        index = self.trees.index(self.current)
-        index += 1 - len(self.trees)
-        self.current = self.trees[index]
+    def next_tab(self):
+        self.tabs.next()
 
-    def prev_tree(self):
-        index = self.trees.index(self.current)
-        index -= 1
-        self.current = self.trees[index]
-    
+    def prev_tab(self):
+        self.tabs.prev()
+
     def open_tree(self, path, set_current=True, parser=TaskTreeParserAuto, name=None):
         if name is None:
             name = path

@@ -11,8 +11,8 @@ import sys
 import logging
 import argparse
 
-logging.basicConfig(filename='treetasks.log', encoding='utf-8', level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#logging.basicConfig(filename='treetasks.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#logging.basicConfig(filename='treetasks.log', encoding='utf-8', level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='treetasks.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', force=True)
 
 default_treefile = "~/.treetasks.xml"
 default_config = "~/.treetasks.ini"

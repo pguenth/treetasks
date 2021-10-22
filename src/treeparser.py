@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 from datetime import date
-from .tree import Task, TaskState
+from .task import Task, TaskState
 
 def convert_parser(path_in, path_out, parser_in, parser_out):
     tree = TaskTree(path_in, None, parser_in)

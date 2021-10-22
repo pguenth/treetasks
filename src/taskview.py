@@ -2,7 +2,7 @@ import curses
 import logging
 from datetime import date, timedelta
 
-from .tree import TaskState
+from .task import TaskState
 from .geometry import TaskWindowColumns, ScheduleCoordinates
 from .config import Config
 from .state import State
@@ -422,7 +422,7 @@ class ScheduleTask(TaskView):
         else:
             attr = curses.color_pair(0)
 
-        if self.task == State.tm.schedule_in_use.cursor:
+        if self.task == State.tm.schedule.cursor:
             attr |= curses.A_REVERSE
 
         sched_coords = ScheduleCoordinates(self.width)
