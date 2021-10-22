@@ -5,6 +5,9 @@ import logging
 class CursorException(Exception):
     pass
 
+class MovementError(Exception):
+    pass
+
 class Scroller:
     def __init__(self, viewport_height, scrolloffset):
         self.viewport_height = viewport_height
@@ -104,6 +107,10 @@ class ListCursor:
     def viewport_height(self, h):
         self._scroller.viewport_height = h
 
+    def _move_check(self):
+        if self.cursor is None:
+            raise MovementError("Cursor is None")
+
 class TabbarCursor(ListCursor):
     def __init__(self, list_descriptor):
         super().__init__(list_descriptor, Config.get("behaviour.scrolloffset_tabbar"))
@@ -154,7 +161,17 @@ class TreeCursor(ListCursor):
     def __init__(self, list_descriptor):
         super().__init__(list_descriptor, Config.get("behaviour.scrolloffset_tree"))
 
+    def _move_check(self):
+        try:
+            super()._move_check()
+            return True
+        except MovementError:
+            return False
+
     def move_flat(self, delta):
+        if not self._move_check():
+            return
+
         tasks = self.list
         index_new = tasks.index(self.cursor) + delta
 
@@ -173,6 +190,9 @@ class TreeCursor(ListCursor):
         self.cursor = tasks[index_new]
 
     def _move_hierarchic(self, up=True):
+        if not self._move_check():
+            return
+
         displayed_children = [t for t in self.list
                                 if t in self.cursor.parent.children]
 
@@ -217,6 +237,9 @@ class TreeCursor(ListCursor):
             delta += 1
 
     def move_treeup(self):
+        if not self._move_check():
+            return
+
         tasks = self.list
 
         if isinstance(self.cursor.parent, AnyNode):
@@ -225,6 +248,9 @@ class TreeCursor(ListCursor):
         self.cursor = self.cursor.parent
         
     def move_treedown(self):
+        if not self._move_check():
+            return
+
         tasks = self.list
 
         # uncollapse if neccessary
