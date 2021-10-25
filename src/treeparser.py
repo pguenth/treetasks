@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import logging
 from datetime import date
 from .task import Task, TaskState
 
@@ -96,19 +97,48 @@ class TaskTreeParserXML:
         return this_element
 
     @staticmethod
-    def load(path, root_node):
+    def _get_hidden_categories(filter_node, tasktree):
+        showonly = []
+        hidden = []
+
+        for child in filter_node:
+            if child.tag == 'showonly':
+                showonly.append(child.text)
+            elif child.tag == 'hidden':
+                hidden.append(child.text)
+
+        tasktree.show_only_categories = showonly
+        tasktree.hidden_categories = hidden
+
+    @staticmethod
+    def _write_hidden_categories(filter_node, tasktree):
+        for h in tasktree.hidden_categories:
+            ET.SubElement(filter_node, 'hidden').text = h
+
+        for c in tasktree.show_only_categories:
+            ET.SubElement(filter_node, 'showonly').text = c
+        
+
+    @staticmethod
+    def load(path, tasktree):
         tree = ET.parse(path)
         root = tree.getroot()
 
         for child in root:
-            TaskTreeParserXML._parse_recursive(child, root_node)
+            if child.tag == "filter":
+                TaskTreeParserXML._get_hidden_categories(child, tasktree)
+            else:
+                TaskTreeParserXML._parse_recursive(child, tasktree.root)
 
     @staticmethod
-    def save(path, root_node):
+    def save(path, tasktree):
         root = ET.Element('todo')
-        for child in root_node.children:
+        for child in tasktree.root.children:
             c_elem = ET.SubElement(root, 'todo')
             TaskTreeParserXML._encode_recursive(child, c_elem)
+
+        filter_node = ET.SubElement(root, 'filter')
+        TaskTreeParserXML._write_hidden_categories(filter_node, tasktree)
 
 
         with open(path, mode='w') as f:
@@ -116,11 +146,11 @@ class TaskTreeParserXML:
 
 class TaskTreeParserJSON:
     @staticmethod 
-    def load(path, root_node):
+    def load(path, tasktree):
         print("Loading json file", path)
 
     @staticmethod
-    def save(path, root_node):
+    def save(path, tasktree):
         print("saving json file", path)
 
 class TaskTreeParserAuto:
@@ -132,9 +162,9 @@ class TaskTreeParserAuto:
             return TaskTreeParserJSON
 
     @staticmethod
-    def load(path, root_now):
-        return TaskTreeParserAuto._choose_parser(path).load(path, root_now)
+    def load(path, tasktree):
+        return TaskTreeParserAuto._choose_parser(path).load(path, tasktree)
 
     @staticmethod
-    def save(path, root_now):
-        return TaskTreeParserAuto._choose_parser(path).save(path, root_now)
+    def save(path, tasktree):
+        return TaskTreeParserAuto._choose_parser(path).save(path, tasktree)

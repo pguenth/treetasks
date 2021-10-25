@@ -49,7 +49,16 @@ class TaskTree:
         except FileNotFoundError:
             first_task = Task("empty", parent=self.root)
         else:
-            self.parser.load(self.path, self.root)
+            self.parser.load(self.path, self)
+
+    @property
+    def hidden_categories(self):
+        return self._hidden_categories
+
+    @hidden_categories.setter
+    def hidden_categories(self, categories):
+        self._hidden_categories = set(categories)
+        self.outdate_tree_list()
 
     @property
     def viewport_height(self):
@@ -125,15 +134,12 @@ class TaskTree:
 
     def hide_categories(self, categories):
         self.hidden_categories |= set(categories)
-        self.outdate_tree_list()
 
     def unhide_categories(self, categories):
         self.hidden_categories -= set(categories)
-        self.outdate_tree_list()
 
     def unhide_all_categories(self):
         self.hidden_categories = set()
-        self.outdate_tree_list()
 
     @property
     def show_only_categories(self):
@@ -190,7 +196,7 @@ class TaskTree:
         Config.set("behaviour.sort_tagged_below", False)
 
         self._sort_natural()
-        self.parser.save(self.path, self.root)
+        self.parser.save(self.path, self)
 
         Config.set("behaviour.sort_tagged_below", stb)
 
