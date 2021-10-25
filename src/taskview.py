@@ -334,6 +334,13 @@ def strf_timedelta(td):
     string = "{}d{:02d}h{:02d}m{:02d}s".format(d, h, m, s)
     return string
 
+def get_limited_path(task, limit):
+    dotstr = "…"
+    path = [t.title for t in task.path if not isinstance(t, AnyNode) and not t == task]
+    path_limited = [p[:limit - len(dotstr)] + dotstr if len(p) > limit else p for p in path]
+    path_str = "/".join(path_limited) + "/" if len(path_limited) else ""
+    return path_str
+
 class DescriptionTask(TaskView):
     def __init__(self, task, geometry, treetasks_app):
         super().__init__(task, geometry, treetasks_app)
@@ -358,12 +365,14 @@ class DescriptionTask(TaskView):
         y = self.y
         cat_len = len(self.categories)
 
-        path_maxlen = Config.get("appearance.path_maxlength")
+        path_maxlen = Config.get("appearance.description_path_maxlength")
+        if Config.get("appearance.description_show_path"):
+            path_str = get_limited_path(self.task, path_maxlen)
+            self.app.scr.addstr(y, x + 3, path_str)
+        else:
+            path_str = ""
+
         title_width = max(int(0.5 * self.width), self.width - cat_len)
-        path = [t.title for t in self.task.path if not isinstance(t, AnyNode) and not t == self.task]
-        path_limited = [p[:path_maxlen - 2] + ".." if len(p) > path_maxlen else p for p in path]
-        path_str = "/".join(path_limited) + "/" if len(path_limited) else ""
-        self.app.scr.addstr(y, x + 3, path_str)
         self.title.place(x + 3 + len(path_str), y, self.app, title_width - 3)
         self.title.attr = curses.A_BOLD
         self.priority.place(x + 1, y, self.app, 1)
@@ -433,7 +442,13 @@ class ScheduleTask(TaskView):
         self.due.place(x + sched_coords.due_offset,
                 y, self.app, sched_coords.datewidth)
 
-        self.title.place(x + 1, y + 1, self.app, self.width - 2)
+        pathlen = Config.get("appearance.schedule_path_maxlength")
+        if Config.get("appearance.description_show_path"):
+            pathstr = get_limited_path(self.task, pathlen)
+            self.app.scr.addstr(y + 1, x + 1, pathstr)
+        else:
+            pathstr = ""
+        self.title.place(x + 1 + len(pathstr), y + 1, self.app, self.width - 2)
 
         self.title.attr = attr
 
