@@ -307,7 +307,7 @@ class ListTask(TaskView):
             )
         self.priority.attr = attr
         
-        if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_state"):
+        if Config.get("plugins.timewarrior"):
             import ext.timewarrior as timewarrior
             
             if timewarrior.is_tracking_task(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True):
@@ -411,7 +411,7 @@ class DescriptionTask(TaskView):
         self.categories.place(x + self.width - cat_len - 1, y, self.app)
         self.text.place(x + 1, y + 2, self.app, self.width - 2, maxlines=self.height - 2)
 
-        if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_state"):
+        if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_time"):
             import ext.timewarrior as timewarrior
             duration = timewarrior.get_duration(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True)
             duration_str = strf_timedelta(duration)

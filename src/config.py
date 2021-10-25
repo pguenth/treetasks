@@ -143,7 +143,7 @@ class Config:
                 'timewarrior' : False,
                 'timewarrior_propagate_modifications' : True,
                 'timewarrior_parents_as_tags' : True,
-                'timewarrior_show_state' : False
+                'timewarrior_show_time' : True
             }
 
     }

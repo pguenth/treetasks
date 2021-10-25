@@ -1,8 +1,12 @@
 import subprocess
+import logging
 from subprocess import PIPE, STDOUT
 from anytree import AnyNode
 import json
 from datetime import timedelta, datetime, timezone
+
+timew_current_event = None
+timew_current_event_outdated = True
 
 def get_tags_categories(task):
     tags = [task.title]
@@ -28,6 +32,7 @@ def get_tags(task, parents_as_tags=True):
 def _start_or_stop_task(task, start=True, parents_as_tags=True):
     start_or_stop = 'start' if start else 'stop'
     cp = subprocess.run(['timew', start_or_stop] + get_tags(task, parents_as_tags) + [':yes', ':quiet'], check=False, stdout=PIPE, stderr=STDOUT)
+    _outdate_current_event()
     return cp.stdout.decode("utf-8")
 
 def start_task(task, parents_as_tags=True):
@@ -35,6 +40,7 @@ def start_task(task, parents_as_tags=True):
 
 # stops whatever is running. doing otherwise easily leads to inconsitencies
 def stop():
+    _outdate_current_event()
     cp = subprocess.run('timew stop :quiet'.split(), check=False, stdout=PIPE, stderr=STDOUT)
     return cp.stdout.decode("utf-8")
 
@@ -74,15 +80,31 @@ def get_ids(task, parents_as_tags=True):
 
     return ids
 
+# caching if the current event makes things much more lag-free
+def _outdate_current_event():
+    global timew_current_event_outdated
+    timew_current_event_outdated = True
+
 def get_current_event():
+    global timew_current_event_outdated
+    global timew_current_event
+
+    if timew_current_event_outdated:
+        timew_current_event_outdated = False
+        _get_current_event_update()
+
+    return timew_current_event
+
+def _get_current_event_update():
+    global timew_current_event
     exported = subprocess.check_output('timew export :quiet'.split())
     info = json.loads(exported.decode('utf-8'))
     task = [event for event in info if event['id'] == 1][0]
 
     if 'end' in task:
-        return None
+        timew_current_event = None
     else:
-        return task
+        timew_current_event = task
 
 def _is_tracking_task(task, current_event, parents_as_tags=True):
     tags = sorted(get_tags(task, parents_as_tags))

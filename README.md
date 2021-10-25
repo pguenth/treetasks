@@ -66,14 +66,7 @@ This makes sense since work on *child_task* should also be shown if work on *par
 Treetasks categories are implicitly used on children as well, for example if the category of *parent_task* is hidden *child_task* will not be shown, too.
 If `plugins.timewarrior_propagate_modifications` is set to `True` editing the task's title or category will also edit those information in timewarrior to keep things in sync.
 This is a bit experimental and may produce unwanted results in timewarrior.
+Treetasks highlights the task that is currently tracking in timewarrior and its parents by adding a green `R`
+If `plugins.timewarrior_show_time` is set to `True` treetasks shows the time spent on the task and its children in the description area.
 
-If `plugins.timewarrior_show_state` is set to `True` treetasks
-* highlights the task that is currently tracking in timewarrior and its parents by adding a green `R`
-* shows the time spent on the task and its children in the description area.
-
-These features are deactivated by default, because it results in loads of subprocess calls to timewarrior at the moment since at every cursor movement the task tree and task description are redrawn and therefore treetasks queries timewarrior for every task to see if it is active.
-Maybe a better solution is implemented in the future. 
-If you have an easy-to-implement idea how to implement this feature with less subprocess calls please do get in touch.
-
-
-
+Using timewarrior may result in treetasks having to run many subprocess calls to keep the information shown in sync. This may lead to a somewhat laggy experience.
