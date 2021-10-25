@@ -1,6 +1,7 @@
 import curses
 import logging
 from datetime import date, timedelta
+from anytree import AnyNode
 
 from .task import TaskState
 from .geometry import TaskWindowColumns, ScheduleCoordinates
@@ -357,8 +358,13 @@ class DescriptionTask(TaskView):
         y = self.y
         cat_len = len(self.categories)
 
+        path_maxlen = Config.get("appearance.path_maxlength")
         title_width = max(int(0.5 * self.width), self.width - cat_len)
-        self.title.place(x + 3, y, self.app, title_width - 3)
+        path = [t.title for t in self.task.path if not isinstance(t, AnyNode) and not t == self.task]
+        path_limited = [p[:path_maxlen - 2] + ".." if len(p) > path_maxlen else p for p in path]
+        path_str = "/".join(path_limited) + "/" if len(path_limited) else ""
+        self.app.scr.addstr(y, x + 3, path_str)
+        self.title.place(x + 3 + len(path_str), y, self.app, title_width - 3)
         self.title.attr = curses.A_BOLD
         self.priority.place(x + 1, y, self.app, 1)
         self.categories.place(x + self.width - cat_len - 1, y, self.app)

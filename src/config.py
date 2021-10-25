@@ -28,7 +28,8 @@ class Config:
                 'indent_guide' : "⁝",
                 'columns_max_total_ratio' : 0.3,
                 'columns_border' : True,
-                'tab_width' : 16
+                'tab_width' : 16,
+                'path_maxlength' : 16
             },
             'keys' : {
                 'down' : 'j',
