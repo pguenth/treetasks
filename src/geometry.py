@@ -147,3 +147,55 @@ class WindowCoordinates:
         self.descr = RectCoordinates()
         self.cross = Point()
         self.columns = TaskWindowColumns()
+
+    @classmethod
+    def calculated(cls, screen_height, screen_width):
+        h = screen_height
+        w = screen_width
+        c = cls()
+
+        # spacings from the border
+        c.tasks.ul.x = 1
+        c.tasks.ul.y = 1
+        c.sched.br.x = w - 2
+        c.sched.ul.y = c.tasks.ul.y
+        c.descr.br.y = h - 2
+        c.descr.ul.x = c.tasks.ul.x
+        
+        # find location where the inner-screen borders meet
+        if Config.get("appearance.schedule_show"):
+            r = Config.get("appearance.schedule_ratio")
+            c.cross.x = int(c.sched.br.x - r * (c.sched.br.x - c.tasks.ul.x))
+            sched_w = c.sched.br.x - c.cross.x
+            if sched_w < Config.get("appearance.schedule_min"):
+                if Config.get("appearance.schedule_min") <= w - 4:
+                    sched_w = Config.get("appearance.schedule_min")
+            elif sched_w > Config.get("appearance.schedule_max"):
+                sched_w = Config.get("appearance.schedule_max")
+            c.cross.x = c.sched.br.x - sched_w
+        else:
+            c.cross.x = w - 1
+
+        if Config.get("appearance.description_show"):
+            r = Config.get("appearance.description_ratio")
+            c.cross.y = int(c.descr.br.y - r * (c.descr.br.y - c.tasks.ul.y))
+            descr_h = c.descr.br.y - c.cross.y
+            if descr_h < Config.get("appearance.description_min"):
+                if Config.get("appearance.description_min") <= h - 5:
+                    descr_h = Config.get("appearance.description_min")
+            elif descr_h > Config.get("appearance.description_max"):
+                descr_h = Config.get("appearance.description_max")
+            c.cross.y = c.descr.br.y - descr_h
+        else:
+            c.cross.y = h - 1
+
+        c.tasks.br.x = c.cross.x - 1
+        c.tasks.br.y = c.cross.y - 1
+        c.sched.ul.x = c.cross.x + 1
+        c.descr.ul.y = c.cross.y + 1
+        c.sched.br.y = c.descr.br.y
+        c.descr.br.x = c.tasks.br.x
+
+        c.columns = TaskWindowColumns(c.tasks.w - 1)
+
+        return c

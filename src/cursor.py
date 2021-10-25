@@ -258,7 +258,8 @@ class TreeCursor(ListCursor):
             self.cursor.toggle_collapse()
             tasks = self.list
 
-        try:
-            self.cursor = self.cursor.children[0]
-        except:
+        displayed_children = [t for t in self.cursor.children if t in self.list]
+        if len(displayed_children) == 0:
             raise TreeError("Cursor has no children")
+        else:
+            self.cursor = displayed_children[0]

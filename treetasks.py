@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
 from src.config import Config
-from src.interface import Window
-from src.state import State
+from src.application import TreeTasksApplication
 from src.treeparser import TaskTreeParserXML, TaskTreeParserJSON, convert_parser
 from curses import wrapper
 import os.path
@@ -75,9 +74,10 @@ def action_normal(args):
             else:
                 name = None
 
-            State.tm.open_tree(treefile)
+            app = TreeTasksApplication(stdscr)
+            app.tm.open_tree(treefile)
 
-        Window.main(stdscr)
+        app.run()
 
     wrapper(run)
 
