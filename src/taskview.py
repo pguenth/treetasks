@@ -1,4 +1,5 @@
 import curses
+from math import ceil
 import logging
 from datetime import date, timedelta
 from anytree import AnyNode
@@ -273,11 +274,30 @@ class ListTask(TaskView):
         self.cols.taskwindow_width = self.width
 
         x = self.x
-        for i in range(len(self.task.ancestors) - 1):
-            self.app.scr.addstr(self.y, x + 2, Config.get("appearance.indent_guide").ljust(1))
-            x += Config.get("appearance.indent")
+                # 1: width offset, 2: spacing, 6: prefix, 1: spacing to cols
+        if not Config.get("behaviour.flat_tree"):
+            for i in range(len(self.task.ancestors) - 1):
+                self.app.scr.addstr(self.y, x + 2, Config.get("appearance.indent_guide").ljust(1))
+                x += Config.get("appearance.indent")
 
+        title_maxwidth = self.width - self.cols.real_sum - 1 - 2 - 1 - 6 - x + self.x
         attr = self._get_state_attr()
+        attr_title = attr
+
+        if Config.get("behaviour.flat_tree"):
+            pathstr_maxlength = title_maxwidth - len(self.task.title)
+            if pathstr_maxlength < 1:
+                pathstr = ""
+            else:
+                pathstr = get_limited_path_overall(self.task, pathstr_maxlength)
+
+            pathstr_offset = len(pathstr)
+            self.app.scr.addstr(self.y, x + 5, pathstr)
+            if attr_title == curses.A_NORMAL:
+                attr_title = curses.A_BOLD
+        else:
+            pathstr_offset = 0
+
 
         self.priority.place(
                 x + 2,
@@ -309,14 +329,13 @@ class ListTask(TaskView):
                 self.app.scr.addstr(self.y, x, "-")
 
         self.title.place(
-                x + 5,
+                x + 5 + pathstr_offset,
                 self.y,
                 self.app,
-                # 1: width offset, 2: spacing, 6: prefix, 1: spacing to cols
-                self.width - self.cols.real_sum - 1 - 2 - 1 - 6 - x + self.x
+                title_maxwidth - pathstr_offset
             )
 
-        self.title.attr = attr
+        self.title.attr = attr_title
 
         if self.app.tm.current.cursor == self.task:
             self.title.attr = curses.A_STANDOUT
@@ -340,6 +359,19 @@ def get_limited_path(task, limit):
     path_limited = [p[:limit - len(dotstr)] + dotstr if len(p) > limit else p for p in path]
     path_str = "/".join(path_limited) + "/" if len(path_limited) else ""
     return path_str
+
+def get_limited_path_overall(task, overall_limit):
+    dotstr = "…"
+    path = [t.title for t in task.path if not isinstance(t, AnyNode) and not t == task]
+    unlimited_length = len("/".join(path))
+    if len(path) != 0:
+        cut = max(0, ceil((unlimited_length - overall_limit) / len(path)))
+        path_limited = [p[:-cut - len(dotstr)] + dotstr if cut > 0 else p for p in path]
+        path_str = "/".join(path_limited) + "/" if len(path_limited) else ""
+        return path_str
+    else:
+        return ""
+
 
 class DescriptionTask(TaskView):
     def __init__(self, task, geometry, treetasks_app):

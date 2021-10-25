@@ -194,6 +194,9 @@ class TreeCursor(ListCursor):
         if not self._move_check():
             return
 
+        if Config.get("behaviour.flat_tree"):
+            return self.move_flat(-1 if up else 1)
+
         displayed_children = [t for t in self.list
                                 if t in self.cursor.parent.children]
 

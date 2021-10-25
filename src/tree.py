@@ -108,6 +108,9 @@ class TaskTree:
 
         tasks = list(PreOrderIter(self.root, filt))
 
+        if Config.get("behaviour.flat_tree"):
+            self.update_order(tasks)
+
         self._tree_list_cache = tasks
         self._tree_list_outdated = False
             
@@ -150,42 +153,50 @@ class TaskTree:
         self._show_only_categories = set(categories)
         self.outdate_tree_list()
 
-    def _sort(self, key):
-        self.root.sort_tree(key=key, reverse=self.sort_reverse)
+    def _sort(self, key, what=None):
+        if what is None:
+            self.root.sort_tree(key=key, reverse=self.sort_reverse)
 
-        if Config.get("behaviour.sort_tagged_below"):
-            self.root.sort_tree(key=lambda t: t.done or t.cancelled)
+            if Config.get("behaviour.sort_tagged_below"):
+                self.root.sort_tree(key=lambda t: t.done or t.cancelled)
+        else:
+            what.sort(key=key, reverse=self.sort_reverse)
+            if Config.get("behaviour.sort_tagged_below"):
+                what.sort(key=lambda t: t.done or t.cancelled)
 
-    def _sort_natural(self):
+    def _sort_natural(self, what=None):
+        if not what is None:
+            return
+
         self.root.sort_tree_link(reverse=self.sort_reverse)
 
         if Config.get("behaviour.sort_tagged_below"):
             self.root.sort_tree(key=lambda t: t.done or t.cancelled)
 
-    def update_order(self):
+    def update_order(self, what=None):
         if self.sort_key == TaskTreeSortKey.NATURAL:
-            self._sort_natural()
+            self._sort_natural(what)
         elif self.sort_key == TaskTreeSortKey.TITLE:
-            self._sort(lambda t: t.title)
+            self._sort(lambda t: t.title, what)
         elif self.sort_key == TaskTreeSortKey.CATEGORY:
             def k(t):
                 if len(t.categories) == 0:
                     return ''
                 else:
                     return t.categories[0]
-            self._sort(k)
+            self._sort(k, what)
         elif self.sort_key == TaskTreeSortKey.DUE:
-            self._sort(lambda t: t.due if not t.due is None else datetime.date(2100,1,1))
+            self._sort(lambda t: t.due if not t.due is None else datetime.date(2100,1,1), what)
         elif self.sort_key == TaskTreeSortKey.SCHEDULED:
-            self._sort(lambda t: t.scheduled if not t.scheduled is None else datetime.date(2100,1,1))
+            self._sort(lambda t: t.scheduled if not t.scheduled is None else datetime.date(2100,1,1), what)
         elif self.sort_key == TaskTreeSortKey.PRIORITY:
-            self._sort(lambda t: t.priority if not t.priority is None else 10)
+            self._sort(lambda t: t.priority if not t.priority is None else 10, what)
         elif self.sort_key == TaskTreeSortKey.DATE:
             def k(t):
                 sort_date = t.sort_date
                 return sort_date if not sort_date is None else datetime.date(2100, 1, 1)
 
-            self._sort(k)
+            self._sort(k, what)
 
     def set_order(self, key, reverse=False):
         self.sort_key = key

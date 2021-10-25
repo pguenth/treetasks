@@ -79,7 +79,8 @@ class CommandHandler:
             'toggle_global_schedule' : lambda c: Commands.toggle_config(c, "behaviour.global_schedule"),
             'toggle_movement' : lambda c: Commands.toggle_config(c, "behaviour.primary_movement_hierarchic"),
             'timewarrior_start' : Commands.timewarrior_start,
-            'timewarrior_stop' : Commands.timewarrior_stop
+            'timewarrior_stop' : Commands.timewarrior_stop,
+            'toggle_flat_tree' : lambda c: Commands.toggle_config(c, "behaviour.flat_tree")
     }
 
     def __init__(self, tasktree_application):

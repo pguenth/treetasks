@@ -172,6 +172,18 @@ class TreeTasksApplication:
 
         self.scr.addstr(self.coordinates.tasks.br.y + 1, self.coordinates.tasks.br.x - l, filter_str, curses.A_DIM)
 
+    def draw_sortkey(self):
+        sortkey = self.tm.current.sort_key.name.lower()
+        if sortkey == "natural":
+            sortkey_str = " Sorted in natural order "
+        else:
+            sortkey_str = " Sorted by {} ".format(sortkey)
+
+        if self.tm.current.sort_reverse:
+            sortkey_str += "(inv) "
+
+        self.scr.addstr(self.coordinates.tasks.br.y + 1, self.coordinates.tasks.ul.x + 1, sortkey_str, curses.A_DIM)
+
     def draw_tabbar(self, x, w):
         tab_width = Config.get("appearance.tab_width")
         tab_count = int(w / tab_width)
@@ -210,6 +222,7 @@ class TreeTasksApplication:
                     curses.ACS_HLINE, self.coordinates.cross.x - 1)
 
         self.draw_filterstr()
+        self.draw_sortkey()
 
         self.scr.refresh()
 

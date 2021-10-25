@@ -32,7 +32,8 @@ class Config:
                 'description_show_path' : True,
                 'schedule_show_path' : True,
                 'description_path_maxlength' : 16,
-                'schedule_path_maxlength' : 8 
+                'schedule_path_maxlength' : 8,
+                'flat_tree_path_maxlength' : 20
             },
             'keys' : {
                 'down' : 'j',
@@ -72,6 +73,7 @@ class Config:
                 'toggle_show_done' : 'G',
                 'toggle_show_cancelled' : 'V',
                 'toggle_sort_tagged_below' : 'F',
+                'toggle_flat_tree' : 'b',
                 'toggle_global_schedule' : 'L',
                 'show_only_categories' : 'z',
                 'show_all_categories' : 'Z',
@@ -135,6 +137,7 @@ class Config:
                 'roundtrip' : True,
                 'global_schedule' : True,
                 'primary_movement_hierarchic' : True,
+                'flat_tree' : False
             },
             'plugins' : {
                 'timewarrior' : False,
