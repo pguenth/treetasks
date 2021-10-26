@@ -274,13 +274,13 @@ class ListTask(TaskView):
         self.cols.taskwindow_width = self.width
 
         x = self.x
-                # 1: width offset, 2: spacing, 6: prefix, 1: spacing to cols
         if not Config.get("behaviour.flat_tree"):
             for i in range(len(self.task.ancestors) - 1):
                 self.app.scr.addstr(self.y, x + 2, Config.get("appearance.indent_guide").ljust(1))
                 x += Config.get("appearance.indent")
 
-        title_maxwidth = self.width - self.cols.real_sum - 1 - 2 - 1 - 6 - x + self.x
+                # 1: width offset, 2: spacing, 6: prefix, 1: spacing to cols
+        title_maxwidth = self.width - self.cols.real_sum - 1 - 6 - x + self.x
         attr = self._get_state_attr()
         attr_title = attr
 
@@ -307,17 +307,16 @@ class ListTask(TaskView):
             )
         self.priority.attr = attr
         
+        if self.task.state == TaskState.DONE:
+            self.app.scr.addstr(self.y, x + 2, "d", attr)
+        elif self.task.state == TaskState.CANCELLED:
+            self.app.scr.addstr(self.y, x + 2, "c", attr)
+
         if Config.get("plugins.timewarrior"):
             import ext.timewarrior as timewarrior
             
             if timewarrior.is_tracking_task(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True):
                 self.app.scr.addstr(self.y, x + 2, "R", curses.color_pair(2))
-        elif self.task.state == TaskState.DONE:
-            s = "d"
-            self.app.scr.addstr(self.y, x + 2, "d", attr)
-        elif self.task.state == TaskState.CANCELLED:
-            s = "c"
-            self.app.scr.addstr(self.y, x + 2, "c", attr)
 
         self.app.scr.addstr(self.y, x + 1, "[", attr)
         self.app.scr.addstr(self.y, x + 3, "] ", attr)
@@ -360,7 +359,9 @@ def get_limited_path(task, limit):
     path_str = "/".join(path_limited) + "/" if len(path_limited) else ""
     return path_str
 
-def get_limited_path_overall(task, overall_limit):
+
+
+def get_limited_path_overall_old(task, overall_limit):
     dotstr = "…"
     path = [t.title for t in task.path if not isinstance(t, AnyNode) and not t == task]
     unlimited_length = len("/".join(path))
@@ -372,6 +373,42 @@ def get_limited_path_overall(task, overall_limit):
     else:
         return ""
 
+def get_limited_path_overall(task, lim):
+    path_parts = [t.title for t in task.path if not isinstance(t, AnyNode) and not t == task]
+    count = len(path_parts)
+    max_len = sum([len(p) for p in path_parts]) + count - 1
+    slash_count = count
+    if lim <= count + slash_count:
+        rstr = ""
+        for i, part in enumerate(reversed(path_parts)):
+            if i == 0:
+                if lim - len(rstr) < 1:
+                    break
+                rstr = part[0] + rstr
+            else:
+                if lim - len(rstr) < 2:
+                    break
+                rstr = part[0] + "/" + rstr
+
+        return rstr 
+    elif lim < max_len:
+        part_lengths = [1] * count
+        filling_index = count - 1
+        while sum(part_lengths) < lim - slash_count:
+            if part_lengths[filling_index] == len(path_parts[filling_index]):
+                if filling_index == count - 1 and filling_index != 0:
+                    filling_index = 0
+                elif filling_index == 0 and count > 2:
+                    filling_index = count - 2
+                else:
+                    filling_index -= 1
+                if filling_index < 0:
+                    break
+            part_lengths[filling_index] += 1
+
+        path_parts = [p[:l] for p, l in zip(path_parts, part_lengths)]
+
+    return "/".join(path_parts) + "/" if not count == 0 else ""
 
 class DescriptionTask(TaskView):
     def __init__(self, task, geometry, treetasks_app):
@@ -474,9 +511,9 @@ class ScheduleTask(TaskView):
         self.due.place(x + sched_coords.due_offset,
                 y, self.app, sched_coords.datewidth)
 
-        pathlen = Config.get("appearance.schedule_path_maxlength")
+        pathlen = self.width - 2 - len(self.title.s)
         if Config.get("appearance.description_show_path"):
-            pathstr = get_limited_path(self.task, pathlen)
+            pathstr = get_limited_path_overall(self.task, pathlen)
             self.app.scr.addstr(y + 1, x + 1, pathstr)
         else:
             pathstr = ""
