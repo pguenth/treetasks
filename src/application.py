@@ -50,20 +50,20 @@ class TreeTasksApplication:
 
         self.scr = DeepcopySafeCursesWindow(stdscr)
         self.command_handler = CommandHandler(self)
-        self.tm = TreeManager()
+        self.tm = TreeManager(self)
         self.message = ""
 
         self._break_loop = False
         self._has_resized = True
 
     def run(self):
-        self.draw()
-        while not self._break_loop:
-            try:
+        try:
+            self.draw()
+            while not self._break_loop:
                 self.loop()
-            except KeyboardInterrupt:
-                self.tm.save_all()
-                self.quit()
+        except KeyboardInterrupt:
+            self.tm.save_all()
+            self.quit()
 
     def __call__(self):
         self.run()
@@ -80,6 +80,7 @@ class TreeTasksApplication:
         self.draw()
 
     def quit(self):
+        self.tm.close_all()
         self._break_loop = True
 
     def get_input(self, message):
@@ -207,22 +208,27 @@ class TreeTasksApplication:
         self.scr.addstr(0, 1, wintitle, curses.A_BOLD)
         y, x = self.scr.getmaxyx()
 
+
+        if len(self.tm.trees) >= 1:
+            self.draw_tabbar(len(wintitle) + 2, x - 2 - len(wintitle))
+            self.draw_tasks()
+
+            if Config.get("appearance.schedule_show"):
+                self.draw_schedule()
+                self.scr.vline(1, self.coordinates.cross.x, 
+                        curses.ACS_VLINE, y - 2)
+
+            if Config.get("appearance.description_show"):
+                self.draw_description()
+                self.scr.hline(self.coordinates.cross.y, self.coordinates.tasks.ul.x,
+                        curses.ACS_HLINE, self.coordinates.cross.x - 1)
+
+            self.draw_filterstr()
+            self.draw_sortkey()
+        else:
+            self.scr.addstr(0, len(wintitle) + 2, "No trees opened.")
+
         self.scr.addstr(y - 1, 0, "-> " + self.message + " ")
-        self.draw_tabbar(len(wintitle) + 2, x - 2 - len(wintitle))
-        self.draw_tasks()
-
-        if Config.get("appearance.schedule_show"):
-            self.draw_schedule()
-            self.scr.vline(1, self.coordinates.cross.x, 
-                    curses.ACS_VLINE, y - 2)
-
-        if Config.get("appearance.description_show"):
-            self.draw_description()
-            self.scr.hline(self.coordinates.cross.y, self.coordinates.tasks.ul.x,
-                    curses.ACS_HLINE, self.coordinates.cross.x - 1)
-
-        self.draw_filterstr()
-        self.draw_sortkey()
 
         self.scr.refresh()
 

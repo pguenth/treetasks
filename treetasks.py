@@ -68,13 +68,14 @@ def action_normal(args):
     def run(stdscr):
         Config.load(args.config)
 
+        app = TreeTasksApplication(stdscr)
+
         for treefile in args.files:
             if os.path.expanduser(treefile) == os.path.expanduser(default_treefile):
                 name = "def"
             else:
                 name = None
 
-            app = TreeTasksApplication(stdscr)
             app.tm.open_tree(treefile)
 
         app.run()

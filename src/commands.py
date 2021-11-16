@@ -290,7 +290,7 @@ class Commands:
             self.app.tm.open_tree(os.path.expanduser(path))
 
     def close_tab(self):
-        if len(self.app.tm.trees) > 1:
+        if len(self.app.tm.trees) > 0:
             self.app.tm.close_current_tree()
         else:
             self.quit()

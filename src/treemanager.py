@@ -4,11 +4,55 @@ from .referenced import ReferencedDescriptor
 from .config import Config
 from .treeparser import TaskTreeParserAuto
 import logging
+import time
 import copy
+import psutil
+import os
+import signal
+
+
+def check_pidfile(treetasks_path):
+    pidfile = treetasks_path + ".pid"
+    if not os.path.exists(pidfile):
+        return None
+
+    with open(pidfile) as pf:
+        try:
+            pid = int(pf.read())
+        except ValueError:
+            logging.warn("Could not parse pid file contents from {}".format(pidfile))
+            return None
+
+    return pid
+
+def lock_pidfile(treetasks_path):
+    pidfile = treetasks_path + ".pid"
+    with open(pidfile, "w") as pf:
+        pf.write(str(os.getpid()))
+
+def remove_pidfile(treetasks_path):
+    pidfile = treetasks_path + ".pid"
+    os.remove(pidfile)
+
+def is_self(pid):
+    return pid == os.getpid()
+
+def is_running(pid):
+    return psutil.pid_exists(pid)
+
+def kill_and_wait(pid, signal, timeout=3):
+    os.kill(pid, signal)
+    start = time.perf_counter()
+    while time.perf_counter() - start < timeout:
+        if not is_running(pid):
+            break
+
+    return is_running(pid)
 
 class TreeManager:
-    def __init__(self):
+    def __init__(self, app):
         self._clipboard = None
+        self._app = app
         self.global_schedule = ScheduleCursor(ReferencedDescriptor(TreeManager.global_schedule_list, self), self.sync_cursors)
         self.tabs = TabbarCursor(ReferencedDescriptor(TreeManager.trees, self))
 
@@ -85,6 +129,28 @@ class TreeManager:
         if name is None:
             name = path
 
+        pid = check_pidfile(path)
+        if pid is None:
+            lock_pidfile(path)
+        else:
+            if is_self(pid):
+                self._app.message = "File already opened."
+                return
+            elif is_running(pid):
+                if self._app.get_input("File open in another instance. Kill it? (y/n)") != "y":
+                    return
+                else:
+                    if kill_and_wait(pid, signal.SIGINT):
+                        self._app.message = "PID {} is not reacting to SIGINT.".format(pid)
+                        return
+                    lock_pidfile(path)
+            else:
+                if self._app.get_input("Pidfile existing, but no process found. Overwrite pidfile? (y/n)") != "y":
+                    return
+                else:
+                    lock_pidfile(path)
+
+
         newtree = TaskTree(path, self, parser=parser, name=name)
         self.trees.append(newtree)
         if set_current:
@@ -93,9 +159,6 @@ class TreeManager:
     def close_tree(self, tree):
         if not tree in self.trees:
             raise ValueError("Tree not open")
-
-        if len(self.trees) == 1:
-            raise IndexError("Cannot close the last tree")
 
         index = self.trees.index(tree) - len(self.trees) + 1
         
@@ -106,9 +169,15 @@ class TreeManager:
         if tree == self.current:
             self.current = self.trees[index]
 
+        remove_pidfile(tree.path)
+
     def save_all(self):
         for tree in self.trees:
             tree.save()
 
     def close_current_tree(self):
         self.close_tree(self.current)
+
+    def close_all(self):
+        for tree in self.trees:
+            self.close_tree(tree)
