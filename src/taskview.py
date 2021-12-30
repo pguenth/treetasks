@@ -1,7 +1,8 @@
 import curses
 from math import ceil
 import logging
-from datetime import date, timedelta
+import re
+from datetime import date, timedelta, datetime
 from anytree import AnyNode
 
 from .task import TaskState
@@ -83,25 +84,22 @@ class EditableDate(EditableString):
         if date is None:
             return ""
 
-        if self.maxcols < 8:
-            if date == date.today():
-                dstr = "today"
-            elif date == date.today() + timedelta(days=1):
+        if date == date.today():
+            dstr = "today"
+        elif date == date.today() + timedelta(days=1):
+            if self.maxcols < 8:
                 dstr = "tmrrw"
             else:
-                dstr = date.strftime("%m-%d")
-        elif self.maxcols < 10:
-            if date == date.today():
-                dstr = "today"
-            elif date == date.today() + timedelta(days=1):
                 dstr = "tomorrow"
-            else:
-                dstr = date.strftime("%y-%m-%d")
+        elif (date - date.today()).days <= 7 and (date - date.today()).days > 0:
+            dstr = date.strftime("%A")
+            if len(dstr) > self.maxcols:
+                dstr = date.strftime("%a")
         else:
-            if date == date.today():
-                dstr = "today"
-            elif date == date.today() + timedelta(days=1):
-                dstr = "tomorrow"
+            if self.maxcols < 8:
+                dstr = date.strftime("%m-%d")
+            elif self.maxcols < 10:
+                dstr = date.strftime("%y-%m-%d")
             else:
                 dstr = date.strftime("%Y-%m-%d")
 
@@ -109,13 +107,125 @@ class EditableDate(EditableString):
 
     @s.setter
     def s(self, value):
-        try:
-            d = date.fromisoformat(value)
-        except ValueError:
-            self.app.message = "Unable to parse date"
-            return
+        parsers = [
+            EditableDate.parse_date_name,
+            EditableDate.parse_date_weekday,
+            EditableDate.parse_date_interval,
+            EditableDate.parse_date_absolute
+        ]
 
-        self.descriptor.set(d)
+        for p in parsers:
+            d = p(value)
+            if not d is None:
+                break
+
+        if d is None:
+            self.app.message = "Unable to parse date"
+        else:
+            self.descriptor.set(d)
+
+
+    @staticmethod
+    def parse_date_name(s):
+        s = s.lower()
+        if s == "tommorrow" or s == "tmmrw":
+            return date.today() + timedelta(days=1)
+        elif s == "today" or s == "tdy":
+            return date.today()
+        else:
+            return None
+
+    @staticmethod
+    def parse_date_weekday(s):
+        if "monday".startswith(s):
+            wd = 0
+        elif "tuesday".startswith(s):
+            wd = 1
+        elif "wednesday".startswith(s):
+            wd = 2
+        elif "thursday".startswith(s):
+            wd = 3
+        elif "friday".startswith(s):
+            wd = 4
+        elif "saturday".startswith(s):
+            wd = 5 
+        elif "sunday".startswith(s):
+            wd = 6
+        else:
+            return None
+
+        td = date.today().weekday()
+        delta = wd - td
+        delta = delta if delta > 0 else delta + 7
+        return date.today() + timedelta(days=delta)
+
+    @staticmethod
+    def parse_date_interval(s):
+        match = re.findall(r"([\-\+])(\d+)([DWMdwm])", s)
+        if len(match) == 0:
+            return None
+       
+        delta = timedelta(days=0)
+        for op, n, unit in match:
+            unit = unit.lower()
+            if unit == 'd':
+                this_d = timedelta(days=n)
+            elif unit == 'w':
+                this_d = timedelta(weeks=n)
+            elif unit == 'm':
+                this_d = timedelta(days=30*n)
+
+            if op == '-':
+                delta -= this_d 
+            else:
+                delta += this_d
+
+        return date.today() + delta
+
+    @staticmethod
+    def parse_date_absolute(s):
+        formats = [
+                ('%Y-%m-%d', ''),
+                ('%y-%m-%d', ''),
+                ('%d.%m.%Y', ''),
+                ('%d.%m.%y', ''),
+                ('%m/%d/%y', ''),
+                ('%m/%d/%Y', ''),
+                ('%m-%d', 'y'),
+                ('%d.%m', 'y'),
+                ('%d.%m.', 'y'),
+                ('%m/%d', 'y'),
+                ('%d', 'ym')
+                ('%d.', 'ym')
+            ]
+
+        for fmt, defs in formats:
+            try:
+                d = datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
+
+            if defs == 'y':
+                d = d.replace(year=date.today().year)
+                if d <= date.today():
+                    d = d.replace(year=d.year + 1)
+            if defs == 'ym':
+                d = d.replace(year=date.today().year)
+                d = d.replace(month=date.today().month)
+                if d <= date.today():
+                    if d.month == 12:
+                        n_month = 1
+                        n_dyear = 1
+                    else:
+                        n_month = d.month + 1
+                        n_dyear = 0
+
+                    d = d.replace(month=n_month, year=d.year + n_dyear)
+
+            logging.debug("using {}, {}: s {}, d {}".format(fmt, defs, s, d))
+            return d
+
+        return None
 
 class EditableList(EditableString):
     @property

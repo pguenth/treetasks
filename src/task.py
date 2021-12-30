@@ -131,10 +131,7 @@ class Task(LinkedListNodeMixin):
             return
 
         if not type(value) == date:
-            try:
-                value = date.fromisoformat(value)
-            except ValueError:
-                raise ValueError("Date not given as isoformat string")
+            raise ValueError("Date is not of type date")
         
         self._fields['scheduled'] = value
         self._modification_hook()
@@ -150,10 +147,7 @@ class Task(LinkedListNodeMixin):
             return
 
         if not type(value) == date:
-            try:
-                value = date.fromisoformat(value)
-            except ValueError:
-                raise ValueError("Date not given as isoformat string")
+            raise ValueError("Date is not of type date")
         
         self._fields['due'] = value
         self._modification_hook()

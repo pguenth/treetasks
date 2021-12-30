@@ -3,5 +3,6 @@ temp/
 doc/cheatsheet/*
 !doc/cheatsheet/cheatsheet.pdf
 !doc/cheatsheet/cheatsheet.tex
-todo
+ideas
+bugs
 treetasks.log
