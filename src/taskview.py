@@ -168,6 +168,7 @@ class EditableDate(EditableString):
         delta = timedelta(days=0)
         for op, n, unit in match:
             unit = unit.lower()
+            n = int(n)
             if unit == 'd':
                 this_d = timedelta(days=n)
             elif unit == 'w':
@@ -195,7 +196,7 @@ class EditableDate(EditableString):
                 ('%d.%m', 'y'),
                 ('%d.%m.', 'y'),
                 ('%m/%d', 'y'),
-                ('%d', 'ym')
+                ('%d', 'ym'),
                 ('%d.', 'ym')
             ]
 
