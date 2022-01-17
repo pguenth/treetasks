@@ -231,8 +231,8 @@
     \setlength{\Y}{\Y - \base - \sep}
     % upper row
     \X=0\unit
-    \longfkeyd      (2\base - \unit) {Tab}{switch tab\\(currently in dev)}
-    \keyd          Q{quit without saving},q{quit}
+    \longfkeyd      (2\base - \unit) {Tab}{switch tab}
+    \keyd          Q{quit},q{close tab}
     \keyd          W{timewarrior: stop},w{timewarrior: start task}
     \keyd          E{set scheduled tomorrow},e{set scheduled today}
     \keyd          R{set due tomorrow},r{set due today}
@@ -256,9 +256,9 @@
     % home row
     \X=0\unit
     \longfkeyd (2\base) {Caps Lock}{ }
-    \keyd           A{new child (bottom)},a{edit text}
-    \keyd           S{save},s{sort\note{3}}
-    \keyd          D{delete\note{2}},d{cut}
+    \keyd           A{new child (bottom)},a{edit field\note{4}}
+    \keyd           S{save},s{sort\note{5}}
+    \keyd          D{cut},d{cut\\delete\note{2}}
     \keyd           F{toggle sort tagged below},f{toggle collapse}
     \keyd          G{toggle show done},g{toggle done}
     \keyd          H{move selected task to parent level},h{move to parent}
@@ -275,7 +275,7 @@
     \longfkeyd      (2\base + 2\sep) {Shift}{}
     \keyd           Z{show all categories},z{show only categories}
     \keydd          {\textasciicircum X}{abort editing},X{unhide categories},x{hide categories}
-    \keyd          C{replace title},c{edit properties\note{4}}
+    \keyd          C{replace title},c{replace field\note{3}}
     \keyd           V{toggle show cancelled},v{toggle cancelled}
     \keyd          B{},b{toggle flat tree}
     \keyd          N{today\\(schedule)},n{down\\(schedule)}
@@ -321,19 +321,22 @@
     }
 }
 \def\blockB{
-    \makeblock{6cm}{Delete/Reset fields \note{2}}{
-        Keychains for deleting tasks and resetting fields:
+    \makeblock{6cm}{Delete fields \note{2}}{
+        Keychains for deleting tasks and fields:
         \begin{itemize}
-            \item \shortcut{DD} Delete cursor (to keep clipboard)
-            \item \shortcut{DC} Reset category 
-            \item \shortcut{DP} Reset priority
-            \item \shortcut{DR} Reset due date
-            \item \shortcut{DE} Reset scheduled date
+            \item \shortcut{dd} Cut cursor
+            \item \shortcut{dD} Delete cursor (while keeping clipboard)
+            \item \shortcut{dc} Delete category 
+            \item \shortcut{dp} Delete priority
+            \item \shortcut{dr} Delete due date
+            \item \shortcut{de} Delete scheduled date
+            \item \shortcut{dt} Delete text 
         \end {itemize}
+        \textbf{Watch out:} no operations have undo at the moment
    }
 }
 \def\blockC{
-    \makeblock{6cm}{Sort \note{3}}{
+    \makeblock{6cm}{Sort \note{5}}{
         Keychains for reordering the tree.
         The "natural" order defined by moving around tasks is always saved.
         Replace the second letter of the keychain by its corresponding capital to order in reverse.
@@ -349,24 +352,39 @@
     }
 }
 \def\blockD{
-    \makeblock{6cm}{Edit \note{4}}{
-        Keychains for editing tasks.
+    \makeblock{6cm}{Replace/Change \note{3}}{
+        Keychains for editing tasks by replacing fields.
         \begin{itemize}
-            \item \shortcut{cp} Edit priority
-            \item \shortcut{cc} Edit category
-            \item \shortcut{cr} Edit due date
-            \item \shortcut{ce} Edit scheduled date
-        \end {itemize}
-        Without using keychains, the rest of the properties can be edited:
-        \begin{itemize}
-            \item \shortcut{i} Edit title
             \item \shortcut{C} Replace title
-            \item \shortcut{a} Edit description text
+            \item \shortcut{cp} Replace priority
+            \item \shortcut{cc} Replace category
+            \item \shortcut{cr} Replace due date
+            \item \shortcut{ce} Replace scheduled date
+            \item \shortcut{ct} Replace text
+
         \end {itemize}
+        \textbf{Watch out:} no operations have undo at the moment
 
     }
 }
 \def\blockE{
+    \makeblock{6cm}{Edit \note{4}}{
+        Keychains for editing tasks by replacing fields.
+        \begin{itemize}
+            \item \shortcut{at} or \shortcut{aa} Edit text
+            \item \shortcut{ap} Edit priority
+            \item \shortcut{ac} Edit category
+            \item \shortcut{ar} Edit due date
+            \item \shortcut{ae} Edit scheduled date
+        \end {itemize}
+        Without using keychains, the title can be edited:
+        \begin{itemize}
+            \item \shortcut{i} Edit title
+        \end {itemize}
+
+    }
+}
+\def\blockF{
     \makeblock{6cm}{Movement}{
         You can traverse the tree in two ways:
         \begin{itemize}
@@ -385,7 +403,7 @@
     }
 }
 
-\def\blockF{
+\def\blockG{
     \makeblock{6cm}{Schedule}{
         The schedule shows tasks that are not marked as done or cancelled and have a scheduled date or due date assigned. 
         They are sorted by the earlier date of those two.
@@ -407,9 +425,9 @@
 \vspace{+2ex}
 \scriptsize
 \Shortunderstack{ {\protect\blockA} {\protect\blockB} }
+\Shortunderstack{ {\protect\blockD}  {\protect\blockE}  }
 \Shortunderstack{ {\protect\blockC}  }
-\Shortunderstack{ {\protect\blockD}  }
-\Shortunderstack{ {\protect\blockE}  }
 \Shortunderstack{ {\protect\blockF}  }
+\Shortunderstack{ {\protect\blockG}  }
 
 \end{document}

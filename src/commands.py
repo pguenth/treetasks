@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from anytree import TreeError, PreOrderIter
+from functools import wraps
 import copy
 import os
 
@@ -7,19 +8,20 @@ from .tree import TaskTreeSortKey
 from .config import Config
 
 def task_modification(func):
-    def run_recursive(func, instance, it):
+    def run_recursive(func_bound, it):
         try:
             new = next(it)
             old = copy.deepcopy(new)
-            run_recursive(func, instance, it)
+            run_recursive(func_bound, it)
         except StopIteration:
-            func(instance)
+            func_bound()
         else:
             Config.modify_hook(old, new)
         
-    def f(self):
+    @wraps(func)
+    def f(self, *args, **kwargs):
         it = PreOrderIter(self.app.tm.current.cursor)
-        run_recursive(func, self, it)
+        run_recursive(lambda : func(self, *args, **kwargs), it)
 
     return f
 
@@ -28,48 +30,48 @@ class Commands:
         self.app = treetasks_application
 
     @task_modification
-    def reset_scheduled(self):
+    def delete_scheduled(self):
         self.app.tm.current.cursor.scheduled = None
         
     @task_modification
-    def reset_priority(self):
+    def delete_priority(self):
         self.app.tm.current.cursor.priority = None
 
     @task_modification
-    def reset_due(self):
+    def delete_due(self):
         self.app.tm.current.cursor.due = None
 
     @task_modification
-    def reset_categories(self):
+    def delete_categories(self):
         self.app.tm.current.cursor.categories = None
 
     @task_modification
-    def edit_scheduled(self):
-        self.app.tm.current.cursor.listview.scheduled.edit()
+    def delete_text(self):
+        self.app.tm.current.cursor.text = ""
+
+    @task_modification
+    def edit_scheduled(self, replace=False):
+        self.app.tm.current.cursor.listview.scheduled.edit(replace=replace)
         
     @task_modification
-    def edit_priority(self):
-        self.app.tm.current.cursor.listview.priority.edit(replace=True)
+    def edit_priority(self, replace=False):
+        self.app.tm.current.cursor.listview.priority.edit(replace=replace)
 
     @task_modification
-    def edit_due(self):
-        self.app.tm.current.cursor.listview.due.edit()
+    def edit_due(self, replace=False):
+        self.app.tm.current.cursor.listview.due.edit(replace=replace)
 
     @task_modification
-    def edit_categories(self):
-        self.app.tm.current.cursor.listview.categories.edit()
+    def edit_categories(self, replace=False):
+        self.app.tm.current.cursor.listview.categories.edit(replace=replace)
 
     @task_modification
-    def edit_title(self):
-        self.app.tm.current.cursor.listview.title.edit()
+    def edit_title(self, replace=False):
+        self.app.tm.current.cursor.listview.title.edit(replace=replace)
 
     @task_modification
-    def replace_title(self):
-        self.app.tm.current.cursor.listview.title.edit()
-
-    @task_modification
-    def edit_text(self):
-        self.app.tm.current.cursor.descriptionview.text.edit()
+    def edit_text(self, replace=False):
+        self.app.tm.current.cursor.descriptionview.text.edit(replace=replace)
 
     def sort_title(self, reverse=False):
         self.app.tm.current.set_order(TaskTreeSortKey.TITLE, reverse)

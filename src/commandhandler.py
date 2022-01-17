@@ -12,21 +12,27 @@ class CommandHandler:
             'left' : Commands.left,
             'right' : Commands.right,
             'collapse' : Commands.collapse,
-            'edit_title' : Commands.edit_title,
-            'edit_scheduled' : Commands.edit_scheduled,
-            'edit_due' : Commands.edit_due,
-            'edit_priority' : Commands.edit_priority,
-            'edit_categories' : Commands.edit_categories,
-            'reset_scheduled' : Commands.reset_scheduled,
-            'reset_due' : Commands.reset_due,
-            'reset_priority' : Commands.reset_priority,
-            'reset_categories' : Commands.reset_categories,
+            'edit_title' : lambda c: Commands.edit_title(c, replace=False),
+            'edit_scheduled' : lambda c: Commands.edit_scheduled(c, replace=False),
+            'edit_due' : lambda c: Commands.edit_due(c, replace=False),
+            'edit_priority' : lambda c: Commands.edit_priority(c, replace=False),
+            'edit_categories' : lambda c: Commands.edit_categories(c, replace=False),
+            'edit_text' : lambda c: Commands.edit_text(c, replace=False),
+            'replace_title' : lambda c: Commands.edit_title(c, replace=True),
+            'replace_scheduled' : lambda c: Commands.edit_scheduled(c, replace=True),
+            'replace_due' : lambda c: Commands.edit_due(c, replace=True),
+            'replace_priority' : lambda c: Commands.edit_priority(c, replace=True),
+            'replace_categories' : lambda c: Commands.edit_categories(c, replace=True),
+            'replace_text' : lambda c: Commands.edit_text(c, replace=True),
+            'delete_scheduled' : Commands.delete_scheduled,
+            'delete_due' : Commands.delete_due,
+            'delete_priority' : Commands.delete_priority,
+            'delete_categories' : Commands.delete_categories,
+            'delete_text' : Commands.delete_text,
             'toggle_done' : Commands.toggle_done,
             'toggle_show_done' : Commands.toggle_show_done,
             'toggle_cancelled' : Commands.toggle_cancelled,
             'toggle_show_cancelled' : Commands.toggle_show_cancelled,
-            'replace_title' : Commands.replace_title,
-            'edit_text' : Commands.edit_text,
             'sort_title' : Commands.sort_title,
             'sort_natural' : Commands.sort_natural,
             'sort_priority' : Commands.sort_priority,
@@ -93,13 +99,18 @@ class CommandHandler:
             if not action_config in CommandHandler.config_call_map:
                 raise ValueError("Action '{}' not defined".format(action_config))
 
-            key_actions_last = self.key_actions
-            for key in keys[:-1]:
-                if not key in key_actions_last:
-                    key_actions_last[key] = {}
-                key_actions_last = key_actions_last[key]
+            keys_list = keys.split(',')
+            for key_chain in keys_list:
+                self._add_binding(key_chain, CommandHandler.config_call_map[action_config])
 
-            key_actions_last[keys[-1]] = CommandHandler.config_call_map[action_config]
+    def _add_binding(self, key_or_keychain, action_callable):
+        key_actions_last = self.key_actions
+        for key in key_or_keychain[:-1]:
+            if not key in key_actions_last:
+                key_actions_last[key] = {}
+            key_actions_last = key_actions_last[key]
+
+        key_actions_last[key_or_keychain[-1]] = action_callable
 
 
     def handle(self, key):
