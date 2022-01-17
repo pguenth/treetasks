@@ -36,7 +36,10 @@ class TaskTreeParserXML:
         # parse children
         for child in elem:
             if child.tag == "text":
-                node.text = child.text
+                if child.text is None:
+                    node.text = ""
+                else:
+                    node.text = child.text
 
             elif child.tag == "category":
                 node.add_category(child.text)

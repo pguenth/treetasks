@@ -137,7 +137,7 @@ class TreeManager:
                 self._app.message = "File already opened."
                 return
             elif is_running(pid):
-                if self._app.get_input("File open in another instance. Kill it? (y/n)") != "y":
+                if self._app.get_input("File {} open in another instance. Kill it? (y/n)".format(path)) != "y":
                     return
                 else:
                     if kill_and_wait(pid, signal.SIGINT):
@@ -145,7 +145,7 @@ class TreeManager:
                         return
                     lock_pidfile(path)
             else:
-                if self._app.get_input("Pidfile existing, but no process found. Overwrite pidfile? (y/n)") != "y":
+                if self._app.get_input("Pidfile for {} existing, but no process found. Overwrite pidfile? (y/n)".format(path)) != "y":
                     return
                 else:
                     lock_pidfile(path)
