@@ -11,7 +11,6 @@ import logging
 import argparse
 
 #logging.basicConfig(filename='treetasks.log', encoding='utf-8', level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.basicConfig(filename='treetasks.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', force=True)
 
 default_treefile = "~/.treetasks.xml"
 default_config = "~/.treetasks.ini"
@@ -65,6 +64,11 @@ def action_normal(args):
     if args.files is None:
         args.files = [os.path.expanduser(default_treefile)]
 
+    if not args.log is None:
+        logging.basicConfig(filename=args.log, encoding='utf-8', level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', force=True)
+    else:
+        logging.disable()
+
     def run(stdscr):
         Config.load(args.config)
 
@@ -91,6 +95,7 @@ parser.add_argument('-f', '--files', action='extend', nargs='+',
         help='The tree file to open. Can be specified multiple times. Default: ' + default_treefile)
 parser.add_argument('-c', '--config', default=os.path.expanduser(default_config),
         help='The config file to use. Default: ' + default_config)
+parser.add_argument('-l', '--log', action='store_const', const='treetasks.log', help='Output a log to treetasks.log')
 parser.set_defaults(func=action_normal)
 
 parser_convert.add_argument('--input-fmt', help='The parser name to convert from. Currently available: xml, json', required=True)
