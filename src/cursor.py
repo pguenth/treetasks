@@ -88,7 +88,7 @@ class ListCursor:
 
     @cursor.setter
     def cursor(self, value):
-        if value not in self.list:
+        if value not in self.list and not value is None:
             logging.error("setting cursor {} to a value not in the list".format(str(value)[:30]))
         self._cursor = value
 

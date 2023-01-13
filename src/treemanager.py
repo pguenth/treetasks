@@ -85,7 +85,7 @@ class TreeManager:
 
     @current.setter
     def current(self, tree):
-        if not tree in self.trees:
+        if not tree in self.trees and not tree is None:
             self.trees.append(tree)
             tree.manager = self
         self.tabs.cursor = tree
@@ -180,4 +180,9 @@ class TreeManager:
 
     def close_all(self):
         for tree in self.trees:
-            self.close_tree(tree)
+            tree.manager = None
+            remove_pidfile(tree.path)
+
+        # reset state
+        self._trees = []
+        self.current = None

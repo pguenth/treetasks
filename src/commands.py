@@ -218,7 +218,8 @@ class Commands:
 
     def quit(self):
         self.app.tm.save_all()
-        self.app.quit()
+        # return paths of currently opened files 
+        return self.app.quit()
 
     def save(self):
         self.app.tm.save_all()
@@ -295,7 +296,10 @@ class Commands:
         if len(self.app.tm.trees) > 0:
             self.app.tm.close_current_tree()
         else:
-            self.quit()
+            return self.quit()
+
+    def close_all_tabs(self):
+        self.app.tm.close_all()
 
     def timewarrior_start(self):
         if Config.get("plugins.timewarrior"):

@@ -60,10 +60,13 @@ class TreeTasksApplication:
         try:
             self.draw()
             while not self._break_loop:
-                self.loop()
+                store_state = self.loop()
         except KeyboardInterrupt:
             self.tm.save_all()
-            self.quit()
+            store_state = self.quit()
+
+        return store_state
+
 
     def __call__(self):
         self.run()
@@ -71,17 +74,21 @@ class TreeTasksApplication:
     def loop(self):
         k = self.scr.getkey()
 
+        store_state = None
         if not self.handle_special_key(k):
-            self.command_handler.handle(k)
+            store_state = self.command_handler.handle(k)
 
         if Config.get("behaviour.autosave"):
             self.tm.save_all()
 
         self.draw()
+        return store_state
 
     def quit(self):
+        open_paths = [tree.path for tree in self.tm.trees]
         self.tm.close_all()
         self._break_loop = True
+        return open_paths
 
     def get_input(self, message):
         msgstr = "-> " + message + ": "

@@ -13,6 +13,7 @@ import argparse
 #logging.basicConfig(filename='treetasks.log', encoding='utf-8', level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 default_treefile = "~/.treetasks.xml"
+default_lastopened = "~/.treetasks.last"
 default_config = "~/.treetasks.ini"
 
 
@@ -62,7 +63,11 @@ def action_convert(args):
 
 def action_normal(args):
     if args.files is None:
-        args.files = [os.path.expanduser(default_treefile)]
+        try:
+            with open(os.path.expanduser(default_lastopened), mode="r") as f:
+                args.files = list(f.read().splitlines())
+        except FileNotFoundError:
+            args.files = [os.path.expanduser(default_treefile)]
 
     if not args.log is None:
         logging.basicConfig(filename=args.log, encoding='utf-8', level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', force=True)
@@ -82,7 +87,17 @@ def action_normal(args):
 
             app.tm.open_tree(treefile)
 
-        app.run()
+        store_state = app.run()
+
+        if not store_state is None:
+            try:
+                # assumes store_state is always a list of tree file paths
+                with open(os.path.expanduser(default_lastopened), mode="w") as f:
+                    for tree_path in store_state:
+                        f.write(tree_path + "\n")
+            except (FileNotFoundError, PermissionError, NotADirectoryError):
+                logging.info("Could not store last opened files")
+
 
     wrapper(run)
 

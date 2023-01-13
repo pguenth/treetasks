@@ -126,7 +126,11 @@ class CommandHandler:
             action = None
 
         if callable(action):
-            action(self.commands)
+            return_state = action(self.commands)
             self.keychain_scope = None
         else:
+            return_state = None
             self.keychain_scope = action
+
+        return return_state
+
