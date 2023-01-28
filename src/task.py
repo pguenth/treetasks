@@ -253,3 +253,64 @@ class Task(LinkedListNodeMixin):
     def done(self):
         return self.state == TaskState.DONE
 
+
+    @property
+    def pending(self):
+        return self.state == TaskState.PENDING
+
+    @property
+    def done_inherited(self):
+        if self.cancelled_inherited:
+            # if it is cancelled by inheritance, it does not count as done by inheritance under any circumstances
+            return False
+
+        return self.done or len([a for a in self.ancestors if not a.is_root and a.done]) > 0
+
+    @property
+    def cancelled_inherited(self):
+        return self.cancelled or len([a for a in self.ancestors if not a.is_root and a.cancelled]) > 0
+
+    @property
+    def pending_inherited(self):
+        return self.pending and not self.done_inherited and not self.cancelled_inherited
+
+
+    def descendants_with(self, condition):
+        return [c for c in self.descendants if condition(c)]
+
+    @property
+    def descendants_count(self):
+        return len(self.descendants)
+
+    @property
+    def done_descendants_count(self):
+        return len(self.descendants_with(lambda c : c.done))
+
+    @property
+    def pending_descendants_count(self):
+        return len(self.descendants_with(lambda c : c.pending))
+
+    @property
+    def cancelled_descendants_count(self):
+        return len(self.descendants_with(lambda c : c.cancelled))
+
+    @property
+    def done_inherited_descendants_count(self):
+        return len(self.descendants_with(lambda c : c.done_inherited))
+
+    @property
+    def pending_inherited_descendants_count(self):
+        return len(self.descendants_with(lambda c : c.pending_inherited))
+
+    @property
+    def cancelled_inherited_descendants_count(self):
+        return len(self.descendants_with(lambda c : c.cancelled_inherited))
+    
+    @property
+    def progress(self):
+        d = self.done_inherited_descendants_count
+        p = self.pending_inherited_descendants_count
+        if d + p == 0:
+            return 1 if self.done else 0
+        return d / (d + p)
+

@@ -423,6 +423,11 @@ class ListTask(TaskView):
         elif self.task.state == TaskState.CANCELLED:
             self.app.scr.addstr(self.y, x + 2, "c", attr)
 
+        progress_symbols = " ▁▂▃▄▅▆▇█"
+        nsymbol = int((len(progress_symbols) - 1) * self.task.progress + 0.5)
+        self.app.scr.addstr(self.y, x + 3, progress_symbols[nsymbol], attr)
+
+
         if Config.get("plugins.timewarrior"):
             import ext.timewarrior as timewarrior
             
@@ -430,7 +435,7 @@ class ListTask(TaskView):
                 self.app.scr.addstr(self.y, x + 2, "R", curses.color_pair(2))
 
         self.app.scr.addstr(self.y, x + 1, "[", attr)
-        self.app.scr.addstr(self.y, x + 3, "] ", attr)
+        self.app.scr.addstr(self.y, x + 4, "] ", attr)
         
         if len(self.task.children) != 0:
             if self.task.collapsed:
@@ -439,7 +444,7 @@ class ListTask(TaskView):
                 self.app.scr.addstr(self.y, x, "-")
 
         self.title.place(
-                x + 5 + pathstr_offset,
+                x + 6 + pathstr_offset,
                 self.y,
                 self.app,
                 title_maxwidth - pathstr_offset
