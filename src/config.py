@@ -59,6 +59,8 @@ class Config:
                 'edit_due' : 'ar',
                 'edit_priority' : 'ap',
                 'edit_text' : 'at,aa',
+                'priority_up' : '+',
+                'priority_down' : '-',
 
                 'replace_title' : 'C',
                 'replace_categories' : 'cc',

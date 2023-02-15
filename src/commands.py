@@ -301,6 +301,16 @@ class Commands:
     def close_all_tabs(self):
         self.app.tm.close_all()
 
+    @task_modification
+    def priority_up(self):
+        prio = self.app.tm.current.cursor.listview.priority
+        prio.s = min(int(prio.s) + 1, 9)
+
+    @task_modification
+    def priority_down(self):
+        prio = self.app.tm.current.cursor.listview.priority
+        prio.s = max(int(prio.s) - 1, 0)
+
     def timewarrior_start(self):
         if Config.get("plugins.timewarrior"):
             import ext.timewarrior as timewarrior

@@ -67,6 +67,12 @@ class EditableString:
 
     # window is not the ncurses window, but the Window class
     def edit(self, replace=False):
+        """
+        open the string for interactive edit at the place where it is currently drawn.
+        if replace is True, first remove the current contents from screen before entering
+        the edit session.
+        """
+
         self.attr = curses.A_NORMAL
 
         if replace:

@@ -86,7 +86,9 @@ class CommandHandler:
             'toggle_movement' : lambda c: Commands.toggle_config(c, "behaviour.primary_movement_hierarchic"),
             'timewarrior_start' : Commands.timewarrior_start,
             'timewarrior_stop' : Commands.timewarrior_stop,
-            'toggle_flat_tree' : lambda c: Commands.toggle_config(c, "behaviour.flat_tree")
+            'toggle_flat_tree' : lambda c: Commands.toggle_config(c, "behaviour.flat_tree"),
+            'priority_up' : Commands.priority_up,
+            'priority_down' : Commands.priority_down,
     }
 
     def __init__(self, tasktree_application):
