@@ -1,7 +1,9 @@
 import xml.etree.ElementTree as ET
+import json
 import logging
 from datetime import date
 from .task import Task, TaskState
+from .tree import TaskTree
 
 def convert_parser(path_in, path_out, parser_in, parser_out):
     tree = TaskTree(path_in, None, parser_in)
@@ -148,13 +150,100 @@ class TaskTreeParserXML:
             f.write(ET.tostring(root, encoding='unicode'))
 
 class TaskTreeParserJSON:
+    @staticmethod
+    def _task_to_dict(task):
+        tdict = {
+            'title' : task.title,
+            'text' : task.text,
+            'priority' : task.priority,
+            'collapsed' : task.collapsed,
+            'categories' : list(task.categories),
+            'due' : task.due,
+            'scheduled' : task.scheduled
+        }
+
+        if not task.due is None:
+            tdict['due'] = task.due.isoformat()
+
+        if not task.scheduled is None:
+            tdict['scheduled'] = task.scheduled.isoformat()
+
+        if task.state is TaskState.PENDING:
+            tdict['state'] = 'pending'
+        elif task.state is TaskState.DONE:
+            tdict['state'] = 'done'
+        elif task.state is TaskState.CANCELLED:
+            tdict['state'] = 'cancelled'
+
+        tdict['children'] = []
+        for c in task.children:
+            tdict['children'].append(TaskTreeParserJSON._task_to_dict(c))
+
+        return tdict
+
+    @staticmethod
+    def _task_from_dict(tdict, parent_task):
+        task = Task(tdict['title'], parent=parent_task)
+        task.text = tdict['text']
+        task.priority = tdict['priority']
+        task.collapsed = tdict['collapsed']
+
+        for cat in tdict['categories']:
+            task.add_category(cat)
+
+        if tdict['due'] is None:
+            task.due = None
+        else:
+            task.due = date.fromisoformat(tdict['due'])
+
+        if tdict['scheduled'] is None:
+            task.scheduled = None
+        else:
+            task.scheduled = date.fromisoformat(tdict['scheduled'])
+
+        if tdict['state'] == 'pending':
+            task.state = TaskState.PENDING
+        elif tdict['state'] == 'done':
+            task.state = TaskState.DONE
+        elif tdict['state'] == 'cancelled':
+            task.state = TaskState.CANCELLED
+
+        for c in tdict['children']:
+            TaskTreeParserJSON._task_from_dict(c, task)
+
+        return task
+
     @staticmethod 
     def load(path, tasktree):
-        print("Loading json file", path)
+        with open(path, mode="r") as f:
+            jsondata = json.load(f)
+
+        if 'show_only_categories' in jsondata['filter']:
+            tasktree.show_only_categories = jsondata['filter']['show_only_categories']
+
+        if 'hidden_categories' in jsondata['filter']:
+            tasktree.hidden_categories = jsondata['filter']['hidden_categories']
+
+        for c in jsondata['tasks']:
+            TaskTreeParserJSON._task_from_dict(c, tasktree.root)
 
     @staticmethod
     def save(path, tasktree):
-        print("saving json file", path)
+        tdicts = []
+        for c in tasktree.root.children:
+            tdicts.append(TaskTreeParserJSON._task_to_dict(c))
+
+        jsondata = {
+                'tasks' : tdicts,
+                'filter' : {
+                    'show_only_categories' : list(tasktree.show_only_categories),
+                    'hidden_categories' : list(tasktree.hidden_categories)
+                    }
+                }
+
+        with open(path, mode="w") as f:
+            json.dump(jsondata, f)
+
 
 class TaskTreeParserAuto:
     @staticmethod
