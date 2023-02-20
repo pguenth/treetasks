@@ -65,7 +65,7 @@ def action_normal(args):
     if args.files is None:
         try:
             with open(os.path.expanduser(default_lastopened), mode="r") as f:
-                args.files = list(f.read().splitlines())
+                args.files = [os.path.relpath(p) for p in f.read().splitlines()]
         except FileNotFoundError:
             args.files = [os.path.expanduser(default_treefile)]
 
@@ -94,7 +94,7 @@ def action_normal(args):
                 # assumes store_state is always a list of tree file paths
                 with open(os.path.expanduser(default_lastopened), mode="w") as f:
                     for tree_path in store_state:
-                        f.write(tree_path + "\n")
+                        f.write(os.path.abspath(tree_path) + "\n")
             except (FileNotFoundError, PermissionError, NotADirectoryError):
                 logging.info("Could not store last opened files")
 
