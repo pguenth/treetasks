@@ -96,6 +96,7 @@ class TreeManager:
         for tree in self.trees:
             gsl += tree.schedule_list
 
+        gsl.sort(key=lambda t: 0 if t.priority is None else t.priority, reverse=True)
         gsl.sort(key=lambda t: t.sort_date)
 
         return gsl

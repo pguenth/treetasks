@@ -131,6 +131,7 @@ class TaskTree:
                 return False
 
         sched_list = list(PreOrderIter(self.root, filt))
+        sched_list.sort(key=lambda t: 0 if t.priority is None else t.priority, reverse=True)
         sched_list.sort(key=lambda t: t.sort_date)
 
         return sched_list
