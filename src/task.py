@@ -58,6 +58,22 @@ class Task(LinkedListNodeMixin):
             self._fields['categories'] = list(value)
         self._modification_hook()
 
+    @property
+    def inherited_categories(self):
+        if self.parent.is_root:
+            return tuple()
+
+        return tuple(set(self.parent.categories) | set(self.parent.inherited_categories))
+
+    @property
+    def descendants_categories(self):
+        cset = set()
+        for c in self.children:
+            cset |= set(c.categories)
+            cset |= set(c.descendants_categories)
+
+        return tuple(cset)
+
     def add_category(self, category):
         if not type(category) == str:
             raise ValueError("Categories must be of type str")
@@ -183,30 +199,29 @@ class Task(LinkedListNodeMixin):
         assert type(self.root.tasktree.hidden_categories) is set
 
         intersection = self.root.tasktree.hidden_categories & set(self.categories)
-        if len(intersection) == 0:
-            return True
-        else:
-            return False
+        return len(intersection) == 0
 
     @property
     def _category_visible_by_showonly(self):
         assert type(self.root.tasktree.show_only_categories) is set
 
-        so_cat = self.root.tasktree.show_only_categories 
+        check_against = set(self.categories) | set(self.descendants_categories)
+        if Config.get("behaviour.inherit_categories_showonly"):
+            check_against |= set(self.inherited_categories)
+
+        so_cat = self.root.tasktree.show_only_categories
+
         if not so_cat is None and len(so_cat) != 0:
-            intersection = so_cat & set(self.categories)
-            if len(intersection) == 0:
-                return False
-            else:
-                return True
+            intersection = so_cat & check_against
+            return len(intersection) != 0
         else:
             return None
 
     @property
     def _category_visible(self):
-        for child in self.children:
-            if child._category_visible_by_showonly:
-                return True
+        #for child in self.children:
+        #    if child._category_visible_by_showonly:
+        #        return True
 
         vis_by_so = self._category_visible_by_showonly
         if not vis_by_so is None:

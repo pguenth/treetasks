@@ -579,8 +579,32 @@ class DescriptionTask(TaskView):
 
         x = self.x
         y = self.y
-        cat_len = len(self.categories)
 
+        # title line, right-aligned
+        x_right = x + self.width - 1
+        cat_len = len(self.categories)
+        inhr_cat = self.task.inherited_categories
+        inhr_cat_str = " | " + " ".join(inhr_cat) + ("> " if len(inhr_cat) == 0 else " > ")
+        desc_cat = self.task.descendants_categories
+        desc_cat_str = (" >" if len(desc_cat) == 0 else " > ") + " ".join(desc_cat)
+
+        x_right -= len(desc_cat_str)
+        self.app.scr.addstr(y, x_right, desc_cat_str, curses.A_DIM)
+        x_right -= -1 if cat_len == 0 else cat_len # remove double space '>' signs
+        self.categories.place(x_right, y, self.app)
+        self.categories.attr = curses.color_pair(3)
+        x_right -= len(inhr_cat_str)
+        self.app.scr.addstr(y, x_right, inhr_cat_str, curses.A_DIM)
+
+        if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_time"):
+            import ext.timewarrior as timewarrior
+            duration = timewarrior.get_duration(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True)
+            duration_str = strf_timedelta(duration)
+            x_right -= len(duration_str)
+            self.app.scr.addstr(y, x_right, duration_str)
+
+
+        # title line, left-aligned
         #self.priority.place(x + 1, y, self.app, 1)
         self.put_info_str_long(x + 1, y)
         self.app.scr.addstr(y, x + 8, "|")
@@ -593,18 +617,13 @@ class DescriptionTask(TaskView):
         else:
             path_str = ""
 
-        title_width = max(int(0.5 * self.width), self.width - cat_len)
+        title_width = max(int(0.5 * self.width), self.width - x_right)
         self.title.place(x + title_offset + len(path_str), y, self.app, title_width - title_offset)
-        self.title.attr = curses.A_BOLD
-        self.categories.place(x + self.width - cat_len - 1, y, self.app)
+        self.title.attr = curses.color_pair(3) | curses.A_BOLD
+
+        # text block
 
         self.text.place(x + 1, y + 2, self.app, self.width - 2, maxlines=self.height - 2)
-
-        if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_time"):
-            import ext.timewarrior as timewarrior
-            duration = timewarrior.get_duration(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True)
-            duration_str = strf_timedelta(duration)
-            self.app.scr.addstr(y, x + self.width - cat_len - 2 - len(duration_str), duration_str)
 
         t_scheduled = "Scheduled"
         t_due = "Due"

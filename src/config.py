@@ -147,7 +147,8 @@ class Config:
                 'roundtrip' : True,
                 'global_schedule' : True,
                 'primary_movement_hierarchic' : True,
-                'flat_tree' : False
+                'flat_tree' : False,
+                'inherit_categories_showonly' : True
             },
             'plugins' : {
                 'timewarrior' : False,
