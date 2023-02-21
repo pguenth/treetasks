@@ -314,3 +314,11 @@ class Task(LinkedListNodeMixin):
             return 1 if self.done else 0
         return d / (d + p)
 
+    @property
+    def timewarrior_is_tracking(self):
+        if Config.get("plugins.timewarrior"):
+            import ext.timewarrior as timewarrior
+            if timewarrior.is_tracking_task(self, Config.get("plugins.timewarrior_parents_as_tags"), True):
+                return True
+
+        return False

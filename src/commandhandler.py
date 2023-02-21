@@ -15,7 +15,7 @@ class CommandHandler:
             'edit_title' : lambda c: Commands.edit_title(c, replace=False),
             'edit_scheduled' : lambda c: Commands.edit_scheduled(c, replace=False),
             'edit_due' : lambda c: Commands.edit_due(c, replace=False),
-            'edit_priority' : lambda c: Commands.edit_priority(c, replace=False),
+            'edit_priority' : lambda c: Commands.edit_priority(c, replace=True),
             'edit_categories' : lambda c: Commands.edit_categories(c, replace=False),
             'edit_text' : lambda c: Commands.edit_text(c, replace=False),
             'replace_title' : lambda c: Commands.edit_title(c, replace=True),

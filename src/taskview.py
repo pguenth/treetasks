@@ -298,6 +298,56 @@ class TaskView:
         self.height = geometry.h
         self.app = treetasks_app
 
+    @property
+    def state_char(self):
+        if self.task.state == TaskState.DONE:
+            return "d"
+        elif self.task.state == TaskState.CANCELLED:
+            return "c"
+        else:
+            return " "
+
+    @property
+    def _state_attr(self):
+        if self.task.state == TaskState.PENDING:
+            attr = curses.A_NORMAL
+        elif self.task.state == TaskState.DONE:
+            attr = curses.A_DIM
+        elif self.task.state == TaskState.CANCELLED:
+            attr = curses.A_DIM
+
+        return attr
+
+    @property
+    def progress_symbol(self):
+        progress_symbols = " ▁▂▃▄▅▆▇█"
+        return progress_symbols[int((len(progress_symbols) - 1) * self.task.progress + 0.5)]
+
+    def put_info_str(self, x, y):
+        """
+        draws a length-2 info str at the given position
+        """
+        if self.task.timewarrior_is_tracking:
+            self.app.scr.addstr(y, x, "R", curses.color_pair(2))
+        elif not self.task.state == TaskState.PENDING:
+            self.app.scr.addstr(y, x, self.state_char, self._state_attr)
+        elif not self.task.priority is None:
+            self.app.scr.addstr(y, x, str(self.task.priority), self._state_attr)
+
+        self.app.scr.addstr(y, x + 1, self.progress_symbol, self._state_attr)
+
+    def put_info_str_long(self, x, y):
+        """
+        draws a length 7 info str at the given position
+        """
+        if self.task.timewarrior_is_tracking:
+            self.app.scr.addstr(y, x, "R", curses.color_pair(2))
+        if not self.task.priority is None:
+            self.app.scr.addstr(y, x + 1, str(self.task.priority), self._state_attr)
+        self.app.scr.addstr(y, x + 2, self.state_char, self._state_attr)
+        perc = int(self.task.progress * 100 + 0.5)
+        self.app.scr.addstr(y, x + 3, f"{perc:3d}%", self._state_attr)
+
 class ListTask(TaskView):
     def __init__(self, task, geometry, treetasks_app):
         super().__init__(task, geometry, treetasks_app)
@@ -344,18 +394,8 @@ class ListTask(TaskView):
         elif not 's' in Config.get("appearance.columns"):
             self.scheduled = None
 
-    def _get_state_attr(self):
-        if self.task.state == TaskState.PENDING:
-            attr = curses.A_NORMAL
-        elif self.task.state == TaskState.DONE:
-            attr = curses.A_DIM
-        elif self.task.state == TaskState.CANCELLED:
-            attr = curses.A_DIM
-
-        return attr
-
     def _replace_columns(self):
-        attr = self._get_state_attr()
+        attr = self._state_attr
 
         if not self.categories is None:
             self.categories.place(
@@ -398,7 +438,7 @@ class ListTask(TaskView):
 
                 # 1: width offset, 2: spacing, 6: prefix, 1: spacing to cols
         title_maxwidth = self.width - self.cols.real_sum - 1 - 6 - x + self.x
-        attr = self._get_state_attr()
+        attr = self._state_attr
         attr_title = attr
 
         if Config.get("behaviour.flat_tree"):
@@ -415,7 +455,6 @@ class ListTask(TaskView):
         else:
             pathstr_offset = 0
 
-
         self.priority.place(
                 x + 2,
                 self.y, 
@@ -423,22 +462,8 @@ class ListTask(TaskView):
                 1
             )
         self.priority.attr = attr
-        
-        if self.task.state == TaskState.DONE:
-            self.app.scr.addstr(self.y, x + 2, "d", attr)
-        elif self.task.state == TaskState.CANCELLED:
-            self.app.scr.addstr(self.y, x + 2, "c", attr)
 
-        progress_symbols = " ▁▂▃▄▅▆▇█"
-        nsymbol = int((len(progress_symbols) - 1) * self.task.progress + 0.5)
-        self.app.scr.addstr(self.y, x + 3, progress_symbols[nsymbol], attr)
-
-
-        if Config.get("plugins.timewarrior"):
-            import ext.timewarrior as timewarrior
-            
-            if timewarrior.is_tracking_task(self.task, Config.get("plugins.timewarrior_parents_as_tags"), True):
-                self.app.scr.addstr(self.y, x + 2, "R", curses.color_pair(2))
+        self.put_info_str(x + 2, self.y)
 
         self.app.scr.addstr(self.y, x + 1, "[", attr)
         self.app.scr.addstr(self.y, x + 4, "] ", attr)
@@ -556,18 +581,23 @@ class DescriptionTask(TaskView):
         y = self.y
         cat_len = len(self.categories)
 
+        #self.priority.place(x + 1, y, self.app, 1)
+        self.put_info_str_long(x + 1, y)
+        self.app.scr.addstr(y, x + 8, "|")
+
+        title_offset = 10
         path_maxlen = Config.get("appearance.description_path_maxlength")
         if Config.get("appearance.description_show_path"):
             path_str = get_limited_path(self.task, path_maxlen)
-            self.app.scr.addstr(y, x + 3, path_str)
+            self.app.scr.addstr(y, x + title_offset, path_str)
         else:
             path_str = ""
 
         title_width = max(int(0.5 * self.width), self.width - cat_len)
-        self.title.place(x + 3 + len(path_str), y, self.app, title_width - 3)
+        self.title.place(x + title_offset + len(path_str), y, self.app, title_width - title_offset)
         self.title.attr = curses.A_BOLD
-        self.priority.place(x + 1, y, self.app, 1)
         self.categories.place(x + self.width - cat_len - 1, y, self.app)
+
         self.text.place(x + 1, y + 2, self.app, self.width - 2, maxlines=self.height - 2)
 
         if Config.get("plugins.timewarrior") and Config.get("plugins.timewarrior_show_time"):
@@ -619,6 +649,8 @@ class ScheduleTask(TaskView):
 
         if self.task.sort_date == date.today():
             attr = curses.color_pair(2)
+        elif self.task.sort_date == date.today() + timedelta(days=1):
+            attr = curses.color_pair(3)
         elif self.task.sort_date < date.today():
             attr = curses.color_pair(1)
         else:
@@ -642,6 +674,9 @@ class ScheduleTask(TaskView):
         self.title.place(x + 1 + len(pathstr), y + 1, self.app, self.width - 2)
 
         self.title.attr = attr
+
+        self.put_info_str(x + self.width - 6, y + 1)
+        #self.app.scr.addstr(y + 1, x + self.width - 6, ' ' + self.state_char + self.progress_symbol + '  ', curses.A_DIM)
 
         if not self.task in self.app.tm.current.schedule_list:
             self.app.scr.addstr(y + 1, x + self.width - 3, ' +', curses.A_DIM)
