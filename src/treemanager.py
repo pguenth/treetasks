@@ -127,9 +127,6 @@ class TreeManager:
         self.tabs.prev()
 
     def open_tree(self, path, set_current=True, parser=TaskTreeParserAuto, name=None):
-        if name is None:
-            name = path
-
         pid = check_pidfile(path)
         if pid is None:
             lock_pidfile(path)

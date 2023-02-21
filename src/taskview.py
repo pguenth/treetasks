@@ -520,8 +520,14 @@ def get_limited_path_overall_old(task, overall_limit):
     else:
         return ""
 
+def get_path_parts(task):
+    return [t.title for t in task.path if not isinstance(t, AnyNode) and not t == task]
+
 def get_limited_path_overall(task, lim):
-    path_parts = [t.title for t in task.path if not isinstance(t, AnyNode) and not t == task]
+    path_parts = get_path_parts(task)
+    get_limited_path_overall_from_parts(path_parts, lim)
+
+def get_limited_path_overall_from_parts(path_parts, lim):
     count = len(path_parts)
     max_len = sum([len(p) for p in path_parts]) + count - 1
     slash_count = count
@@ -686,7 +692,10 @@ class ScheduleTask(TaskView):
 
         pathlen = self.width - 2 - len(self.title.s)
         if Config.get("appearance.description_show_path"):
-            pathstr = get_limited_path_overall(self.task, pathlen)
+            pathstr = get_limited_path_overall_from_parts(
+                    [f"<{self.task.root.tasktree.name}>"] + get_path_parts(self.task),
+                    pathlen
+                    )
             self.app.scr.addstr(y + 1, x + 1, pathstr)
         else:
             pathstr = ""

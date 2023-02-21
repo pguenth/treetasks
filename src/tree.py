@@ -6,6 +6,7 @@ from .referenced import ReferencedDescriptor
 from .cursor import ScheduleCursor, TreeCursor
 from .task import Task
 import logging
+import os.path
 import datetime
 
 class TaskTreeSortKey(Enum):
@@ -23,7 +24,7 @@ class TaskTree:
         self.path = path
 
         if name is None:
-            name = path
+            name = os.path.basename(path).split('.')[0]
 
         self.manager = manager
         self.name = name
